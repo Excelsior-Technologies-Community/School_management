@@ -50,7 +50,6 @@ const SuperAdminDash = () => {
       toast.success('School System Built Successfully! Onboarding invitation email dispatched.')
       setMsg('School System Built Successfully! Onboarding invitation email dispatched.');
       setForm({ schoolName: '', address: '', adminName: '', adminEmail: '' });
-     
       fetchDirectory();
     } catch (err) {
       const errorMessage = err.response?.data?.message || err.message;
@@ -61,7 +60,7 @@ const SuperAdminDash = () => {
   return (
     <div className="min-h-screen bg-slate-50">
       <nav className="bg-slate-800 text-white px-6 py-4 flex justify-between items-center shadow-md">
-        <h1 className="text-lg font-bold flex items-center gap-2"><School size={22} className="text-blue-400" />School Management System,</h1>
+        <h1 className="text-lg font-bold flex items-center gap-2"><School size={22} className="text-blue-400" />School Management System</h1>
         <button onClick={logoutState} className="flex items-center gap-1 bg-red-600 px-3 py-1.5 rounded-lg text-sm hover:bg-red-700 transition-colors font-medium"><LogOut size={16} /> Logout</button>
       </nav>
 

@@ -41,11 +41,11 @@
                 "properties": {
                   "email": {
                     "type": "string",
-                    "example": "super@system.com"
+                    "example": "name@example.com"
                   },
                   "password": {
                     "type": "string",
-                    "example": "superadmin123"
+                    "example": "12345678"
                   }
                 }
               }

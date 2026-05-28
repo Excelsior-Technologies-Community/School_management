@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { KeyRound, CheckCircle2, AlertCircle } from 'lucide-react';
-import axios from 'axios'; 
+import axios from 'axios';
 import { backendUrl } from '../App';
 
 const SetupPassword = () => {
@@ -20,13 +20,10 @@ const SetupPassword = () => {
     }
 
     try {
-      const response = await axios.post(backendUrl + '/api/auth/setup-password', {
-        token,
-        password,
-      });
+      const response = await axios.post(backendUrl + '/api/auth/setup-password', { token, password });
 
       setStatus({ type: 'success', msg: response.data.message || 'Account activated successfully!' });
-      
+
       setTimeout(() => navigate('/login'), 2500);
     } catch (err) {
       const errorMessage = err.response?.data?.message || 'Activation failed';
@@ -46,9 +43,8 @@ const SetupPassword = () => {
         </div>
 
         {status.msg && (
-          <div className={`p-3 rounded mb-4 text-sm flex items-center gap-2 ${
-            status.type === 'success' ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'
-          }`}>
+          <div className={`p-3 rounded mb-4 text-sm flex items-center gap-2 ${status.type === 'success' ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'
+            }`}>
             {status.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
             <span>{status.msg}</span>
           </div>
