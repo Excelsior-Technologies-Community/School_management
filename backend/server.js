@@ -9,6 +9,7 @@ const swaggerDocument = require('./swagger.json');
 
 const authRoutes = require('./routes/authRoutes')
 const superAdminRoutes = require('./routes/superAdminRoutes')
+const schoolAdminRoutes = require('./routes/schoolAdminRoutes')
 
 const app = express();
 
@@ -21,6 +22,8 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 // api endpoints
 app.use('/api/auth', authRoutes);
 app.use('/api/super',superAdminRoutes)
+app.use('/api/school',schoolAdminRoutes)
+app.use('/api/payroll',schoolAdminRoutes)
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
