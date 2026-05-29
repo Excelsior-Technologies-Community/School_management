@@ -112,7 +112,7 @@ const SuperAdminDash = () => {
                 : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
           >
-            <UserPlus size={18} /> Provision New Instance
+            <UserPlus size={18} /> Add New School
           </button>
         </div>
       </div>
@@ -125,7 +125,7 @@ const SuperAdminDash = () => {
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
               <div>
                 <h2 className="text-lg font-bold text-slate-800">Provisioned Institutions Cluster</h2>
-                <p className="text-xs text-slate-500 mt-0.5">Live index directory tracking monitoring of remote school schemas.</p>
+                <p className="text-xs text-slate-500 mt-0.5">Live index directory of schools.</p>
               </div>
               <button 
                 onClick={fetchDirectory} 
@@ -235,7 +235,7 @@ const SuperAdminDash = () => {
         {activeTab === 'deploy' && (
           <div className="bg-white rounded-2xl shadow-sm p-6 border border-slate-200 transition-all duration-300 max-w-4xl mx-auto">
             <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-              <UserPlus className="text-blue-600" size={22}/> Deploy New Tenant School
+              <UserPlus className="text-blue-600" size={22}/> Add New School
             </h2>
             
             {msg && <div className="p-3 bg-blue-50 border-l-4 border-blue-500 text-blue-800 font-medium rounded-r-md mb-6 text-sm">{msg}</div>}
@@ -266,7 +266,7 @@ const SuperAdminDash = () => {
               </div>
 
               <button type="submit" className="md:col-span-2 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-100 mt-2">
-                Provision Database Instance
+                Add
               </button>
             </form>
           </div>
