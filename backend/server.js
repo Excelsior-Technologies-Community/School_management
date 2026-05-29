@@ -23,7 +23,6 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.use('/api/auth', authRoutes);
 app.use('/api/super',superAdminRoutes)
 app.use('/api/school',schoolAdminRoutes)
-app.use('/api/payroll',schoolAdminRoutes)
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
