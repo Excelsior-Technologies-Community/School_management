@@ -97,7 +97,7 @@ INSERT INTO `salaries` VALUES (3,16,62000.00,'2026-05-29 13:42:43'),(4,17,65000.
 UNLOCK TABLES;
 
 --
--- Table structure for table `schools`
+-- Table structure for `schools`
 --
 
 DROP TABLE IF EXISTS `schools`;
