@@ -231,7 +231,6 @@ const SuperAdminDash = () => {
           </div>
         )}
 
-
         {activeTab === 'deploy' && (
           <div className="bg-white rounded-2xl shadow-sm p-6 border border-slate-200 transition-all duration-300 max-w-4xl mx-auto">
             <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
