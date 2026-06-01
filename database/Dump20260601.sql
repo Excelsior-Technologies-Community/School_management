@@ -367,8 +367,8 @@ BEGIN
         SET new_school_id = LAST_INSERT_ID();
         
          -- school admin with invitation_token
-        INSERT INTO staff (school_id, role_id, name, email, password, department, invitation_token)
-        VALUES (new_school_id, admin_role_id, p_admin_name, p_admin_email, NULL, 'Administration', p_invitation_token);
+        INSERT INTO staff (school_id, role_id, department_id, name, email, password, invitation_token)
+        VALUES (new_school_id, admin_role_id, 1, p_admin_name, p_admin_email, NULL, p_invitation_token);
         
     COMMIT ;
 END ;;
