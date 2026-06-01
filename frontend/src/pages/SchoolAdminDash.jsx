@@ -725,8 +725,8 @@ const SchoolAdminDash = () => {
                           type="button"
                           onClick={() => setCurrentPage(pageNum)}
                           className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all ${currentPage === pageNum
-                              ? 'bg-emerald-600 text-white border border-emerald-600'
-                              : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                            ? 'bg-emerald-600 text-white border border-emerald-600'
+                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
                             }`}
                         >
                           {pageNum}

@@ -46,14 +46,14 @@ const SuperAdminDash = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMsg('');
-    
+
     try {
       await axios.post(backendUrl + '/api/super/create-school', form, getAxiosConfig());
-      
+
       toast.success('School System Built Successfully! Onboarding email dispatched.');
       setForm({ schoolName: '', address: '', adminName: '', adminEmail: '' });
       fetchDirectory();
-      setActiveTab('directory'); 
+      setActiveTab('directory');
     } catch (err) {
       const errorMessage = err.response?.data?.message || err.message;
       setMsg(`Error: ${errorMessage}`);
@@ -83,8 +83,8 @@ const SuperAdminDash = () => {
           <span className="text-xs font-mono bg-slate-700 text-slate-300 px-2.5 py-1 rounded-md border border-slate-600">
             Role: Super Admin
           </span>
-          <button 
-            onClick={logoutState} 
+          <button
+            onClick={logoutState}
             className="flex items-center gap-1 bg-red-600 px-3 py-1.5 rounded-lg text-sm hover:bg-red-700 transition-colors font-medium shadow-sm"
           >
             <LogOut size={16} /> Logout
@@ -96,21 +96,19 @@ const SuperAdminDash = () => {
         <div className="max-w-6xl mx-auto px-4 flex gap-6">
           <button
             onClick={() => setActiveTab('directory')}
-            className={`py-4 px-2 text-sm font-semibold flex items-center gap-2 border-b-2 transition-all ${
-              activeTab === 'directory' 
-                ? 'border-blue-600 text-blue-600' 
+            className={`py-4 px-2 text-sm font-semibold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'directory'
+                ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
+              }`}
           >
             <List size={18} /> Institution Registry ({schoolsDirectory.length})
           </button>
           <button
             onClick={() => setActiveTab('deploy')}
-            className={`py-4 px-2 text-sm font-semibold flex items-center gap-2 border-b-2 transition-all ${
-              activeTab === 'deploy' 
-                ? 'border-blue-600 text-blue-600' 
+            className={`py-4 px-2 text-sm font-semibold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'deploy'
+                ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
+              }`}
           >
             <UserPlus size={18} /> Add New School
           </button>
@@ -119,7 +117,7 @@ const SuperAdminDash = () => {
 
 
       <div className="max-w-6xl mx-auto mt-8 p-4">
-        
+
         {activeTab === 'directory' && (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
@@ -127,8 +125,8 @@ const SuperAdminDash = () => {
                 <h2 className="text-lg font-bold text-slate-800">Provisioned Institutions Cluster</h2>
                 <p className="text-xs text-slate-500 mt-0.5">Live index directory of schools.</p>
               </div>
-              <button 
-                onClick={fetchDirectory} 
+              <button
+                onClick={fetchDirectory}
                 disabled={loadingDirectory}
                 className="p-2 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition-all border border-slate-200 bg-white"
                 title="Refresh Directory"
@@ -206,11 +204,10 @@ const SuperAdminDash = () => {
                           <button
                             key={idx}
                             onClick={() => handlePageChange(idx + 1)}
-                            className={`px-3 py-1.5 rounded-md border transition-all ${
-                              currentPage === idx + 1 
-                                ? 'bg-blue-600 border-blue-600 text-white font-bold' 
+                            className={`px-3 py-1.5 rounded-md border transition-all ${currentPage === idx + 1
+                                ? 'bg-blue-600 border-blue-600 text-white font-bold'
                                 : 'bg-white border-slate-200 hover:bg-slate-50'
-                            }`}
+                              }`}
                           >
                             {idx + 1}
                           </button>
@@ -234,9 +231,9 @@ const SuperAdminDash = () => {
         {activeTab === 'deploy' && (
           <div className="bg-white rounded-2xl shadow-sm p-6 border border-slate-200 transition-all duration-300 max-w-4xl mx-auto">
             <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-              <UserPlus className="text-blue-600" size={22}/> Add New School
+              <UserPlus className="text-blue-600" size={22} /> Add New School
             </h2>
-            
+
             {msg && <div className="p-3 bg-blue-50 border-l-4 border-blue-500 text-blue-800 font-medium rounded-r-md mb-6 text-sm">{msg}</div>}
 
             <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -244,11 +241,11 @@ const SuperAdminDash = () => {
                 <h3 className="font-semibold text-slate-700 text-sm tracking-wide uppercase">1. School Profile</h3>
                 <div>
                   <label className="text-xs font-bold text-slate-500">School Name</label>
-                  <input type="text" required className="w-full border p-2 rounded-lg bg-white mt-1 text-slate-800 outline-none focus:border-blue-500 shadow-sm" value={form.schoolName} onChange={(e) => setForm({...form, schoolName: e.target.value})} />
+                  <input type="text" required className="w-full border p-2 rounded-lg bg-white mt-1 text-slate-800 outline-none focus:border-blue-500 shadow-sm" value={form.schoolName} onChange={(e) => setForm({ ...form, schoolName: e.target.value })} />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-500">Campus Address</label>
-                  <textarea required rows={3} className="w-full border p-2 rounded-lg bg-white mt-1 text-slate-800 outline-none focus:border-blue-500 resize-none shadow-sm" value={form.address} onChange={(e) => setForm({...form, address: e.target.value})} />
+                  <textarea required rows={3} className="w-full border p-2 rounded-lg bg-white mt-1 text-slate-800 outline-none focus:border-blue-500 resize-none shadow-sm" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
                 </div>
               </div>
 
@@ -256,11 +253,11 @@ const SuperAdminDash = () => {
                 <h3 className="font-semibold text-slate-700 text-sm tracking-wide uppercase">2. Assigned Administrator</h3>
                 <div>
                   <label className="text-xs font-bold text-slate-500">Admin Full Name</label>
-                  <input type="text" required className="w-full border p-2 rounded-lg bg-white mt-1 text-slate-800 outline-none focus:border-blue-500 shadow-sm" value={form.adminName} onChange={(e) => setForm({...form, adminName: e.target.value})} />
+                  <input type="text" required className="w-full border p-2 rounded-lg bg-white mt-1 text-slate-800 outline-none focus:border-blue-500 shadow-sm" value={form.adminName} onChange={(e) => setForm({ ...form, adminName: e.target.value })} />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-500">Admin Official Email</label>
-                  <input type="email" required className="w-full border p-2 rounded-lg bg-white mt-1 text-slate-800 outline-none focus:border-blue-500 shadow-sm" value={form.adminEmail} onChange={(e) => setForm({...form, adminEmail: e.target.value})} />
+                  <input type="email" required className="w-full border p-2 rounded-lg bg-white mt-1 text-slate-800 outline-none focus:border-blue-500 shadow-sm" value={form.adminEmail} onChange={(e) => setForm({ ...form, adminEmail: e.target.value })} />
                 </div>
               </div>
 
