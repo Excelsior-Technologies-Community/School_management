@@ -1,19 +1,81 @@
 const SchoolAdminModel = require('../models/schoolAdminModel');
 
-const addMember = async (req, res) => {
+const addDepartment = async (req, res) => {
     try {
-        const { roleId, name, email, department } = req.body;
-
+        const { deptName } = req.body;
         const schoolId = req.user?.school_id;
 
-        if (!schoolId || !roleId || !name || !email || !department) {
+        if (!schoolId || !deptName) {
+            return res.status(400).json({ success: false, message: 'Department name is required.' })
+        }
+
+        await SchoolAdminModel.addDepartment(schoolId, deptName);
+        return res.status(201).json({ success: true, message: 'Department added successfully.' });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+}
+
+const listDepartments = async (req, res) => {
+    try {
+        const schoolId = req.user?.school_id;
+
+        if (!schoolId) {
+            return res.status(400).json({ success: false, message: 'Invalid token' });
+        }
+
+        const data = await SchoolAdminModel.getSchoolDepartments(schoolId);
+        return res.status(200).json({ success: true, count: data.length, data });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+}
+
+const updateDepartment = async (req, res) => {
+    try {
+        const schoolId = req.user?.school_id;
+        const { departmentId, deptName } = req.body;
+
+        if (!departmentId || !deptName) {
+            return res.status(400).json({ success: false, message: 'Department name is required.' })
+        }
+
+        await SchoolAdminModel.updateDepartment(schoolId, parseInt(departmentId), deptName.trim());
+        return res.status(201).json({ success: true, message: 'Department updated successfully.' });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+}
+
+const removeDepartment = async (req, res) => {
+    try {
+        const schoolId = req.user?.school_id;
+        const departmentId = req.params.id;
+
+        if (!departmentId) {
+            return res.status(400).json({ success: false, message: 'Invalid target.' })
+        }
+
+        await SchoolAdminModel.removeDepartment(schoolId, parseInt(departmentId));
+        return res.status(200).json({ success: true, message: 'Department removed successfully.' });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+}
+
+const addMember = async (req, res) => {
+    try {
+        const { roleId, departmentId, name, email } = req.body;
+        const schoolId = req.user?.school_id;
+
+        if (!schoolId || !roleId || !departmentId || !name || !email) {
             return res.status(400).json({
                 success: false,
-                message: 'All fields are required (including roleId and valid token context).'
+                message: 'All fields are required.'
             });
         }
 
-        await SchoolAdminModel.addStaffMember(schoolId, roleId, name, email, department);
+        await SchoolAdminModel.addStaffMember(schoolId, roleId, departmentId, name, email);
 
         return res.status(201).json({
             success: true,
@@ -41,13 +103,13 @@ const listMembers = async (req, res) => {
 const updateMember = async (req, res) => {
     try {
         const schoolId = req.user?.school_id;
-        const { staffId, roleId, name, email, department } = req.body;
+        const { staffId, roleId, departmentId, name, email } = req.body;
 
-        if (!schoolId || !staffId || !roleId || !name || !email || !department) {
+        if (!schoolId || !staffId || !roleId || !departmentId || !name || !email) {
             return res.status(400).json({ success: false, message: 'All fields are required' })
         }
 
-        await SchoolAdminModel.updateStaffMember(schoolId, staffId, roleId, name, email, department)
+        await SchoolAdminModel.updateStaffMember(schoolId, staffId, roleId, departmentId, name, email)
         return res.status(200).json({ success: true, message: 'Staff member updated successfully' });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message })
@@ -132,4 +194,4 @@ const viewSchoolPayroll = async (req, res) => {
     }
 }
 
-module.exports = { addMember, listMembers, updateMember, removeMember, addSalary, updateSalary, removeSalary, viewSchoolPayroll };
+module.exports = { addDepartment, listDepartments, updateDepartment, removeDepartment, addMember, listMembers, updateMember, removeMember, addSalary, updateSalary, removeSalary, viewSchoolPayroll };

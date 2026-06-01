@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Building2, Users2, LogOut, UserPlus, Banknote, RefreshCw, Mail, Trash2, ChevronLeft, ChevronRight, Edit3 } from 'lucide-react';
-import { useState } from 'react';
+import {
+  Building2, Users2, LogOut, UserPlus, Banknote, RefreshCw,
+  Mail, Trash2, ChevronLeft, ChevronRight, Edit3, Network,
+  PlusCircle, XCircle
+} from 'lucide-react';
 import axios from 'axios';
 import { backendUrl } from '../App';
 import { toast } from 'react-toastify';
-import { useEffect } from 'react';
 
 const SchoolAdminDash = () => {
   const { user, logoutState } = useAuth();
@@ -13,14 +15,20 @@ const SchoolAdminDash = () => {
 
   const [staffList, setStaffList] = useState([]);
   const [payrollList, setPayrollList] = useState([]);
+  const [departmentList, setDepartmentList] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const [staffForm, setStaffForm] = useState({ roleId: 3, name: '', email: '', department: 'Academic' });
+  const [staffForm, setStaffForm] = useState({ roleId: 3, name: '', email: '', departmentId: '' });
   const [isEditingStaff, setIsEditingStaff] = useState(false);
   const [editingStaffId, setEditingStaffId] = useState(null);
 
   const [salaryForm, setSalaryForm] = useState({ staffId: '', baseSalary: '' });
   const [isEditingSalary, setIsEditingSalary] = useState(false);
+
+  const [deptFormName, setDeptFormName] = useState('');
+  const [isEditingDept, setIsEditingDept] = useState(false);
+  const [editingDeptId, setEditingDeptId] = useState(null);
+  const [deptLoading, setDeptLoading] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 5;
@@ -56,54 +64,84 @@ const SchoolAdminDash = () => {
     }
   };
 
+  const fetchDepartments = async () => {
+    setDeptLoading(true);
+    try {
+      const res = await axios.get(`${backendUrl}/api/school/departments/list`, getAxiosConfig());
+      const depts = Array.isArray(res.data) ? res.data : res.data.data || [];
+      setDepartmentList(depts);
+
+      if (depts.length > 0 && !staffForm.departmentId) {
+        setStaffForm(prev => ({ ...prev, departmentId: depts[0].department_id || depts[0].id }));
+      }
+    } catch (err) {
+      toast.error('Failed to sync school configuration departments.');
+    } finally {
+      setDeptLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchStaffDirectory();
     fetchPayroll();
+    fetchDepartments();
   }, []);
 
   const handleStaffSubmit = async (e) => {
-  e.preventDefault();
-  try {
-    if (isEditingStaff) {
-      const updatePayload = { ...staffForm, staffId: editingStaffId };
-
-      const res = await axios.put(backendUrl + '/api/school/update-member', updatePayload, getAxiosConfig());
-      if (res.data.success) {
-        toast.success('Staff profile updated successfully!');
-        resetStaffFormState();
-        fetchStaffDirectory();
-        fetchPayroll();
-        setActiveTab('directory');
-      }
-    } else {
-      const res = await axios.post(backendUrl + '/api/school/add-member', staffForm, getAxiosConfig());
-      if (res.data.success) {
-        toast.success('Staff entry created!');
-        resetStaffFormState();
-        fetchStaffDirectory();
-        fetchPayroll();
-        setActiveTab('directory');
-      }
+    e.preventDefault();
+    if (!staffForm.departmentId) {
+      toast.error('Please assign a structural department context.');
+      return;
     }
-  } catch (err) {
-    toast.error(err.response?.data?.message || 'Error processing structural staff execution.');
-  }
-};
+
+    try {
+      if (isEditingStaff) {
+        const updatePayload = { ...staffForm, staffId: editingStaffId };
+        const res = await axios.put(backendUrl + '/api/school/update-member', updatePayload, getAxiosConfig());
+        if (res.data.success) {
+          toast.success('Staff profile updated successfully!');
+          resetStaffFormState();
+          fetchStaffDirectory();
+          fetchPayroll();
+          setActiveTab('directory');
+          setCurrentPage(1);
+        }
+      } else {
+        const res = await axios.post(backendUrl + '/api/school/add-member', staffForm, getAxiosConfig());
+        if (res.data.success) {
+          toast.success('Staff entry created!');
+          resetStaffFormState();
+          fetchStaffDirectory();
+          fetchPayroll();
+          setActiveTab('directory');
+          setCurrentPage(1);
+        }
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Error processing structural staff execution.');
+    }
+  };
 
   const handleEditStaffClick = (row) => {
     setStaffForm({
       roleId: row.role_id,
       name: row.name,
       email: row.email,
-      department: row.department
+      departmentId: row.department_id
     });
     setEditingStaffId(row.staff_id);
     setIsEditingStaff(true);
-    setActiveTab('add-staff'); 
+    setActiveTab('add-staff');
+    setCurrentPage(1);
   };
 
-  const resetStaffFormState = () => { 
-    setStaffForm({ roleId: 3, name: '', email: '', department: 'Academic' });
+  const resetStaffFormState = () => {
+    setStaffForm({
+      roleId: 3,
+      name: '',
+      email: '',
+      departmentId: departmentList[0]?.department_id || departmentList[0]?.id || ''
+    });
     setIsEditingStaff(false);
     setEditingStaffId(null);
   };
@@ -153,13 +191,73 @@ const SchoolAdminDash = () => {
     }
   };
 
+  const handleDepartmentSubmit = async (e) => {
+    e.preventDefault();
+    if (!deptFormName.trim()) return;
+
+    try {
+      if (isEditingDept) {
+        const res = await axios.put(`${backendUrl}/api/school/departments/update`, { departmentId: editingDeptId, deptName: deptFormName }, getAxiosConfig());
+        if (res.data.success) {
+          toast.success('Department branch updated!');
+          resetDeptFormState();
+          fetchDepartments();
+          fetchStaffDirectory();
+        }
+      } else {
+        const res = await axios.post(`${backendUrl}/api/school/departments/add`, { deptName: deptFormName }, getAxiosConfig());
+        if (res.data.success) {
+          toast.success('Department branch established!');
+          setDeptFormName('');
+          fetchDepartments();
+        }
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to process department structural parameters.');
+    }
+  };
+
+  const handleEditDeptClick = (row) => {
+    const id = row.department_id || row.id;
+    const name = row.dept_name || row.deptName;
+    setDeptFormName(name);
+    setEditingDeptId(id);
+    setIsEditingDept(true);
+  };
+
+  const resetDeptFormState = () => {
+    setDeptFormName('');
+    setIsEditingDept(false);
+    setEditingDeptId(null);
+  };
+
+  const handleRemoveDepartment = async (deptId) => {
+    if (!window.confirm('Are you sure you want to drop this department? This might impact staff links.')) return;
+    try {
+      const res = await axios.delete(`${backendUrl}/api/school/departments/remove/${deptId}`, getAxiosConfig());
+      if (res.data.success) {
+        toast.success('Department cluster deleted successfully.');
+        fetchDepartments();
+        fetchStaffDirectory();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Error processing department structural purge.');
+    }
+  };
+
   const indexOfLastRow = currentPage * rowsPerPage;
   const indexOfFirstRow = indexOfLastRow - rowsPerPage;
+
+  // Staff Pagination Values
   const currentStaffRows = staffList.slice(indexOfFirstRow, indexOfLastRow);
-  const totalPages = Math.ceil(staffList.length / rowsPerPage);
+  const totalStaffPages = Math.ceil(staffList.length / rowsPerPage);
+
+  // Payroll Pagination Values
+  const currentPayrollItems = payrollList.slice(indexOfFirstRow, indexOfLastRow);
+  const totalPayrollPages = Math.ceil(payrollList.length / rowsPerPage);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex-col">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       <nav className="bg-blue-900 text-white px-6 py-4 flex justify-between items-center shadow-md shrink-0">
         <h1 className="text-lg font-bold flex items-center gap-2">
           <Building2 className="text-blue-300 animate-pulse" size={22} />
@@ -179,39 +277,39 @@ const SchoolAdminDash = () => {
         </div>
       </nav>
 
-      {/* Tab selection */}
+      {/* Tab selection layout */}
       <div className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 flex gap-6">
+        <div className="max-w-6xl mx-auto px-4 flex gap-6 overflow-x-auto whitespace-nowrap scrollbar-none">
           <button
             onClick={() => { setActiveTab('directory'); setCurrentPage(1); }}
-            className={`py-4 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
-              activeTab === 'directory' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
+            className={`py-4 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'directory' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
           >
             <Users2 size={18} /> Staff Registry ({staffList.length})
           </button>
           <button
-            onClick={() => { if (!isEditingStaff) resetStaffFormState(); setActiveTab('add-staff'); }}
-            className={`py-4 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
-              activeTab === 'add-staff' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
+            onClick={() => { if (!isEditingStaff) resetStaffFormState(); setActiveTab('add-staff'); setCurrentPage(1); }}
+            className={`py-4 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'add-staff' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
           >
             <UserPlus size={18} /> {isEditingStaff ? 'Modify Staff Profile' : 'Onboard Staff'}
           </button>
           <button
-            onClick={() => setActiveTab('payroll')}
-            className={`py-4 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
-              activeTab === 'payroll' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
+            onClick={() => { resetDeptFormState(); setActiveTab('departments'); setCurrentPage(1); }}
+            className={`py-4 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'departments' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+          >
+            <Network size={18} /> Departments ({departmentList.length})
+          </button>
+          <button
+            onClick={() => { setActiveTab('payroll'); setCurrentPage(1); }}
+            className={`py-4 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'payroll' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
           >
             <Banknote size={18} /> Payroll
           </button>
         </div>
       </div>
 
-      {/* Tab for staff directory */}
       <div className="max-w-6xl w-full mx-auto p-4 flex-1 mt-4">
 
+        {/* Tab for staff directory */}
         {activeTab === 'directory' && (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
@@ -219,7 +317,7 @@ const SchoolAdminDash = () => {
                 <h2 className="text-lg font-bold text-slate-800">Manage Staff</h2>
               </div>
               <button
-                onClick={fetchStaffDirectory}
+                onClick={() => { setCurrentPage(1); fetchStaffDirectory(); }}
                 className="p-2 border bg-white rounded-lg hover:bg-slate-50 text-slate-500 hover:text-blue-600 transition-colors"
               >
                 <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
@@ -259,7 +357,7 @@ const SchoolAdminDash = () => {
                             </span>
                           </td>
                           <td className="py-4 px-4">
-                            <div className="font-medium text-slate-600 capitalize">{row.role_name.replace('_', ' ')}</div>
+                            <div className="font-medium text-slate-600 capitalize">{row.role_name?.replace('_', ' ')}</div>
                           </td>
                           <td className="py-4 px-4 text-center">
                             <div className="flex justify-center gap-2">
@@ -284,7 +382,7 @@ const SchoolAdminDash = () => {
                     </tbody>
                   </table>
 
-                  {totalPages > 1 && (
+                  {totalStaffPages > 1 && (
                     <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs font-semibold text-slate-500">
                       <div>Showing {indexOfFirstRow + 1} to {Math.min(indexOfLastRow, staffList.length)} of {staffList.length} staff entries</div>
                       <div className="flex gap-1 items-center">
@@ -295,7 +393,7 @@ const SchoolAdminDash = () => {
                         >
                           <ChevronLeft size={14} />
                         </button>
-                        {[...Array(totalPages)].map((_, i) => (
+                        {[...Array(totalStaffPages)].map((_, i) => (
                           <button
                             key={i}
                             onClick={() => setCurrentPage(i + 1)}
@@ -305,8 +403,8 @@ const SchoolAdminDash = () => {
                           </button>
                         ))}
                         <button
-                          onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
-                          disabled={currentPage === totalPages}
+                          onClick={() => setCurrentPage(p => Math.min(p + 1, totalStaffPages))}
+                          disabled={currentPage === totalStaffPages}
                           className="p-1.5 border bg-white rounded-md disabled:opacity-40"
                         >
                           <ChevronRight size={14} />
@@ -330,7 +428,7 @@ const SchoolAdminDash = () => {
             <p className="text-xs text-slate-400 border-b pb-4 mb-6">
               {isEditingStaff ? 'Alter tracking parameters for existing active instances.' : 'Initialize a clean instance record placeholder.'}
             </p>
-            
+
             <form onSubmit={handleStaffSubmit} className="space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -346,7 +444,19 @@ const SchoolAdminDash = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-slate-500">Department</label>
-                  <input type="text" required className="w-full border p-2 mt-1.5 bg-white rounded-lg outline-none focus:border-blue-500 shadow-sm text-sm" placeholder="e.g. Computer Science" value={staffForm.department} onChange={e => setStaffForm({ ...staffForm, department: e.target.value })} />
+                  <select
+                    required
+                    className="w-full border p-2 mt-1.5 bg-white rounded-lg outline-none focus:border-blue-500 shadow-sm text-sm"
+                    value={staffForm.departmentId}
+                    onChange={e => setStaffForm({ ...staffForm, departmentId: parseInt(e.target.value) })}
+                  >
+                    <option value="" disabled>-- Select Department --</option>
+                    {departmentList.map(dept => (
+                      <option key={dept.department_id || dept.id} value={dept.department_id || dept.id}>
+                        {dept.dept_name || dept.deptName}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-500">System Role</label>
@@ -370,10 +480,101 @@ const SchoolAdminDash = () => {
           </div>
         )}
 
+        {/* Tab for department management */}
+        {activeTab === 'departments' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 h-fit">
+              <h3 className="text-sm font-bold text-slate-800 tracking-wide uppercase mb-4 flex items-center gap-1.5">
+                <PlusCircle size={16} className={isEditingDept ? "text-amber-600" : "text-blue-600"} />
+                {isEditingDept ? 'Modify Department' : 'Create Department'}
+              </h3>
+              <form onSubmit={handleDepartmentSubmit} className="space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-500">Department Name</label>
+                  <input
+                    type="text"
+                    required
+                    className="w-full border p-2 mt-1.5 bg-white rounded-lg outline-none text-sm focus:border-blue-500 shadow-sm"
+                    placeholder="e.g. Academic"
+                    value={deptFormName}
+                    onChange={e => setDeptFormName(e.target.value)}
+                  />
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <button type="submit" className={`flex-1 text-white font-bold py-2 rounded-lg text-xs shadow transition-colors ${isEditingDept ? 'bg-amber-600 hover:bg-amber-700' : 'bg-blue-600 hover:bg-blue-700'}`}>
+                    {isEditingDept ? 'Save Changes' : 'Establish Department'}
+                  </button>
+                  {isEditingDept && (
+                    <button type="button" onClick={resetDeptFormState} className="p-2 border bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-lg transition-colors" title="Cancel Modification">
+                      <XCircle size={16} />
+                    </button>
+                  )}
+                </div>
+              </form>
+            </div>
+
+            <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="p-4 bg-slate-50/50 border-b border-slate-100 flex justify-between items-center">
+                <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Department Matrix Configurations</h3>
+                <button onClick={fetchDepartments} className="p-1.5 border bg-white rounded-md text-slate-400 hover:text-blue-600 transition-colors">
+                  <RefreshCw size={14} className={deptLoading ? 'animate-spin' : ''} />
+                </button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-100/50 border-b border-slate-200 text-slate-500 font-bold uppercase">
+                      <th className="py-3 px-5 text-center w-16">ID</th>
+                      <th className="py-3 px-4">Structural Segment</th>
+                      <th className="py-3 px-4 text-center w-28">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-slate-600">
+                    {departmentList.length === 0 ? (
+                      <tr>
+                        <td colSpan="3" className="text-center py-8 text-slate-400 font-medium">No registered system departments matching current instance context.</td>
+                      </tr>
+                    ) : (
+                      departmentList.map((row, i) => (
+                        <tr key={row.department_id || row.id} className="hover:bg-slate-50/50">
+                          <td className="py-3 px-5 text-center font-mono font-bold text-slate-400 bg-slate-50/20">
+                            {row.department_id || row.id}
+                          </td>
+                          <td className="py-3 px-4 font-bold text-slate-800">
+                            {row.dept_name || row.deptName}
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <div className="flex justify-center gap-1.5">
+                              <button
+                                onClick={() => handleEditDeptClick(row)}
+                                className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all"
+                                title="Edit Department Parameters"
+                              >
+                                <Edit3 size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleRemoveDepartment(row.department_id || row.id)}
+                                className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-all"
+                                title="Remove Department Parameter"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Tab for salary management */}
         {activeTab === 'payroll' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
+
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 h-fit">
               <h3 className="text-sm font-bold text-slate-800 tracking-wide uppercase mb-4 flex items-center gap-1.5">
                 <Banknote size={16} className="text-emerald-600" />
@@ -397,14 +598,27 @@ const SchoolAdminDash = () => {
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-500">Base Salary (Annual / INR)</label>
-                  <input type="number" required min="0" step="0.01" className="w-full border p-2 mt-1 bg-white rounded-lg outline-none text-sm focus:border-emerald-500" placeholder="e.g. 750000.00" value={salaryForm.baseSalary} onChange={e => setSalaryForm({ ...salaryForm, baseSalary: e.target.value })} />
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    step="0.01"
+                    className="w-full border p-2 mt-1 bg-white rounded-lg outline-none text-sm focus:border-emerald-500"
+                    placeholder="e.g. 750000.00"
+                    value={salaryForm.baseSalary}
+                    onChange={e => setSalaryForm({ ...salaryForm, baseSalary: e.target.value })}
+                  />
                 </div>
                 <div className="flex gap-2 pt-2">
                   <button type="submit" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg text-xs transition-colors">
                     {isEditingSalary ? 'Update Entry' : 'Add Entry'}
                   </button>
                   {isEditingSalary && (
-                    <button type="button" onClick={() => { setSalaryForm({ staffId: '', baseSalary: '' }); setIsEditingSalary(false); }} className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-semibold">
+                    <button
+                      type="button"
+                      onClick={() => { setSalaryForm({ staffId: '', baseSalary: '' }); setIsEditingSalary(false); }}
+                      className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-semibold"
+                    >
                       Cancel
                     </button>
                   )}
@@ -412,67 +626,128 @@ const SchoolAdminDash = () => {
               </form>
             </div>
 
-            <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="p-4 bg-slate-50/50 border-b border-slate-100 flex justify-between items-center">
-                <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Payroll Status Directory</h3>
-                <button onClick={fetchPayroll} className="p-1.5 border bg-white rounded-md text-slate-400 hover:text-emerald-600"><RefreshCw size={14} /></button>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="bg-slate-100/50 border-b border-slate-200 text-slate-500 font-bold uppercase">
-                      <th className="py-3 px-4">Employee</th>
-                      <th className="py-3 px-4 text-right">Compensation Rate</th>
-                      <th className="py-3 px-4 text-center">Salary Controls</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-slate-600">
-                    {payrollList.map(row => (
-                      <tr key={row.staff_id} className="hover:bg-slate-50/50">
-                        <td className="py-3 px-4">
-                          <div className="font-bold text-slate-800">{row.name}</div>
-                          <div className="text-[10px] text-slate-400 uppercase tracking-tight font-medium">{row.department} • {row.role_name.replace('_', ' ')}</div>
-                        </td>
-                        <td className="py-3 px-4 text-right font-mono font-bold text-slate-800">
-                          {parseFloat(row.base_salary) > 0 ? (
-                            <span className="text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded">
-                              ₹{parseFloat(row.base_salary).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                            </span>
-                          ) : (
-                            <span className="text-amber-600 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded font-sans text-[10px]">
-                              Unassigned
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <div className="flex justify-center gap-1">
-                            <button
-                              onClick={() => { setSalaryForm({ staffId: row.staff_id, baseSalary: row.base_salary }); setIsEditingSalary(true); }}
-                              className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded"
-                              title="Modify Salary Record"
-                            >
-                              <Edit3 size={14} />
-                            </button>
-                            <button
-                              onClick={() => handleClearSalary(row.staff_id)}
-                              disabled={parseFloat(row.base_salary) === 0}
-                              className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded disabled:opacity-30"
-                              title="Wipe Salary Record"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </td>
+            <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col justify-between">
+              <div>
+                <div className="p-4 bg-slate-50/50 border-b border-slate-100 flex justify-between items-center">
+                  <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Payroll Status Directory</h3>
+                  <button onClick={() => { setCurrentPage(1); fetchPayroll(); }} className="p-1.5 border bg-white rounded-md text-slate-400 hover:text-emerald-600">
+                    <RefreshCw size={14} />
+                  </button>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-100/50 border-b border-slate-200 text-slate-500 font-bold uppercase">
+                        <th className="py-3 px-4">Employee</th>
+                        <th className="py-3 px-4 text-right">Compensation Rate</th>
+                        <th className="py-3 px-4 text-center">Salary Controls</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-600">
+                      {currentPayrollItems.length > 0 ? (
+                        currentPayrollItems.map(row => (
+                          <tr key={row.staff_id} className="hover:bg-slate-50/50">
+                            <td className="py-3 px-4">
+                              <div className="font-bold text-slate-800">{row.name}</div>
+                              <div className="text-[10px] text-slate-400 uppercase tracking-tight font-medium">
+                                {row.department} • {row.role_name?.replace('_', ' ')}
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 text-right font-mono font-bold text-slate-800">
+                              {parseFloat(row.base_salary) > 0 ? (
+                                <span className="text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded">
+                                  ₹{parseFloat(row.base_salary).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                </span>
+                              ) : (
+                                <span className="text-amber-600 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded font-sans text-[10px]">
+                                  Unassigned
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <div className="flex justify-center gap-1">
+                                <button
+                                  onClick={() => { setSalaryForm({ staffId: row.staff_id, baseSalary: row.base_salary }); setIsEditingSalary(true); }}
+                                  className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded"
+                                  title="Modify Salary Record"
+                                >
+                                  <Edit3 size={14} />
+                                </button>
+                                <button
+                                  onClick={() => handleClearSalary(row.staff_id)}
+                                  disabled={parseFloat(row.base_salary) === 0}
+                                  className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded disabled:opacity-30"
+                                  title="Wipe Salary Record"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="3" className="py-8 text-center text-slate-400 font-medium">
+                            No employees found in directory entries.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
 
+              {totalPayrollPages > 1 && (
+                <div className="p-4 bg-slate-50/30 border-t border-slate-100 flex flex-col sm:flex-row gap-3 items-center justify-between text-xs text-slate-500 font-medium">
+                  <div>
+                    Showing <span className="font-semibold text-slate-700">{indexOfFirstRow + 1}</span> to{' '}
+                    <span className="font-semibold text-slate-700">
+                      {indexOfLastRow > payrollList.length ? payrollList.length : indexOfLastRow}
+                    </span>{' '}
+                    of <span className="font-semibold text-slate-700">{payrollList.length}</span> staff members
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      className="p-1.5 border border-slate-200 bg-white rounded-md text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white transition-colors"
+                    >
+                      <ChevronLeft size={14} />
+                    </button>
+
+                    {[...Array(totalPayrollPages)].map((_, index) => {
+                      const pageNum = index + 1;
+                      return (
+                        <button
+                          key={pageNum}
+                          type="button"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all ${currentPage === pageNum
+                              ? 'bg-emerald-600 text-white border border-emerald-600'
+                              : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                            }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+
+                    <button
+                      type="button"
+                      disabled={currentPage === totalPayrollPages}
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPayrollPages))}
+                      className="p-1.5 border border-slate-200 bg-white rounded-md text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white transition-colors"
+                    >
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
-
       </div>
     </div>
   );

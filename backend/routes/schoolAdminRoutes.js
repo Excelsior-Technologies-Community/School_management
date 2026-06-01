@@ -1,7 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { addMember, listMembers, updateMember, removeMember, addSalary, updateSalary, removeSalary, viewSchoolPayroll } = require('../controllers/schoolAdminController');
+const { addDepartment, listDepartments, updateDepartment, removeDepartment, addMember, listMembers, updateMember, removeMember, addSalary, updateSalary, removeSalary, viewSchoolPayroll } = require('../controllers/schoolAdminController');
 const { verifyToken, restrictTo } = require('../middleware/authMiddleware')
+
+router.post('/departments/add', verifyToken, restrictTo('school_admin'), addDepartment)
+router.get('/departments/list', verifyToken, restrictTo('school_admin'), listDepartments)
+router.put('/departments/update', verifyToken, restrictTo('school_admin'), updateDepartment)
+router.delete('/departments/remove/:id', verifyToken, restrictTo('school_admin'), removeDepartment)
 
 router.post('/add-member', verifyToken, restrictTo('school_admin'), addMember)
 router.get('/list-members', verifyToken, restrictTo('school_admin'), listMembers)
