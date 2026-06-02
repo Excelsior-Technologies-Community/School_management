@@ -43,7 +43,7 @@ const SchoolAdminDash = () => {
   const fetchStaffDirectory = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(backendUrl + '/api/school/list-members', getAxiosConfig());
+      const res = await axios.get(`${backendUrl}/api/school/list-members`, getAxiosConfig());
       if (res.data.success) setStaffList(res.data.data);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to sync staff records.');
@@ -218,8 +218,8 @@ const SchoolAdminDash = () => {
   };
 
   const handleEditDeptClick = (row) => {
-    const id = row.department_id || row.id;
-    const name = row.dept_name || row.deptName;
+    const id = row.department_id;
+    const name = row.dept_name;
     setDeptFormName(name);
     setEditingDeptId(id);
     setIsEditingDept(true);
@@ -453,7 +453,7 @@ const SchoolAdminDash = () => {
                     <option value="" disabled>-- Select Department --</option>
                     {departmentList.map(dept => (
                       <option key={dept.department_id || dept.id} value={dept.department_id || dept.id}>
-                        {dept.dept_name || dept.deptName}
+                        {dept.dept_name}
                       </option>
                     ))}
                   </select>
@@ -515,7 +515,7 @@ const SchoolAdminDash = () => {
 
             <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
               <div className="p-4 bg-slate-50/50 border-b border-slate-100 flex justify-between items-center">
-                <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Department Matrix Configurations</h3>
+                <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Departments</h3>
                 <button onClick={fetchDepartments} className="p-1.5 border bg-white rounded-md text-slate-400 hover:text-blue-600 transition-colors">
                   <RefreshCw size={14} className={deptLoading ? 'animate-spin' : ''} />
                 </button>
@@ -525,7 +525,7 @@ const SchoolAdminDash = () => {
                   <thead>
                     <tr className="bg-slate-100/50 border-b border-slate-200 text-slate-500 font-bold uppercase">
                       <th className="py-3 px-5 text-center w-16">ID</th>
-                      <th className="py-3 px-4">Structural Segment</th>
+                      <th className="py-3 px-4">Department name</th>
                       <th className="py-3 px-4 text-center w-28">Actions</th>
                     </tr>
                   </thead>
@@ -536,26 +536,26 @@ const SchoolAdminDash = () => {
                       </tr>
                     ) : (
                       departmentList.map((row, i) => (
-                        <tr key={row.department_id || row.id} className="hover:bg-slate-50/50">
+                        <tr key={row.department_id} className="hover:bg-slate-50/50">
                           <td className="py-3 px-5 text-center font-mono font-bold text-slate-400 bg-slate-50/20">
-                            {row.department_id || row.id}
+                            {row.department_id}
                           </td>
                           <td className="py-3 px-4 font-bold text-slate-800">
-                            {row.dept_name || row.deptName}
+                            {row.dept_name}
                           </td>
                           <td className="py-3 px-4 text-center">
                             <div className="flex justify-center gap-1.5">
                               <button
                                 onClick={() => handleEditDeptClick(row)}
                                 className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all"
-                                title="Edit Department Parameters"
+                                title="Edit Department"
                               >
                                 <Edit3 size={14} />
                               </button>
                               <button
-                                onClick={() => handleRemoveDepartment(row.department_id || row.id)}
+                                onClick={() => handleRemoveDepartment(row.department_id)}
                                 className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-all"
-                                title="Remove Department Parameter"
+                                title="Remove Department"
                               >
                                 <Trash2 size={14} />
                               </button>
