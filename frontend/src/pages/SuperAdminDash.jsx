@@ -120,7 +120,7 @@ const SuperAdminDash = () => {
                 <div className="relative flex-1 sm:w-64">
                   <input
                     type="text"
-                    placeholder="Search school or admin..."
+                    placeholder="Search school,address or admin..."
                     value={searchTerm}
                     onChange={(e) => {
                       setCurrentPage(1);
@@ -156,7 +156,8 @@ const SuperAdminDash = () => {
                 
                 const filteredSchools = schoolsDirectory.filter(row =>
                   row.school_name?.toLowerCase().includes(query) ||
-                  row.admin_name?.toLowerCase().includes(query)
+                  row.admin_name?.toLowerCase().includes(query) ||
+                  row.school_address?.toLowerCase().includes(query)
                 );
 
                 if (filteredSchools.length === 0) {
