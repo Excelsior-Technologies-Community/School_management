@@ -758,6 +758,757 @@
           }
         }
       }
+    },
+    "/api/batch/global-classes": {
+      "post": {
+        "summary": "Create a new master global class template",
+        "tags": [
+          "Super Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "class_name"
+                ],
+                "properties": {
+                  "class_name": {
+                    "type": "string",
+                    "example": "Class 10"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Global class template created successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Global class template created successfully"
+                    },
+                    "class_id": {
+                      "type": "integer",
+                      "example": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure - Class name required."
+          },
+          "500": {
+            "description": "Database constraint violation (e.g. duplicate string row value)."
+          }
+        }
+      },
+      "get": {
+        "summary": "Retrieve all global master class templates",
+        "tags": [
+          "Super Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of global classes fetched successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "class_id": {
+                            "type": "integer",
+                            "example": 1
+                          },
+                          "class_name": {
+                            "type": "string",
+                            "example": "Class 10"
+                          },
+                          "created_at": {
+                            "type": "string",
+                            "example": "2026-06-03T11:00:00.000Z"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/batch/school-classes/add": {
+      "post": {
+        "summary": "Select/map a global class template to the school footprint",
+        "tags": [
+          "School Admin - Classes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "class_id"
+                ],
+                "properties": {
+                  "class_id": {
+                    "type": "integer",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Class added to institutional catalog successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Institutional Class Allocation Setup Complete"
+                    },
+                    "school_class_id": {
+                      "type": "integer",
+                      "example": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Missing class_id target pointer."
+          }
+        }
+      }
+    },
+    "/api/batch/school-classes": {
+      "get": {
+        "summary": "List all class mappings selected by the current school admin",
+        "tags": [
+          "School Admin - Classes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "School classes profile grid retrieved cleanly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "school_class_id": {
+                            "type": "integer",
+                            "example": 1
+                          },
+                          "class_id": {
+                            "type": "integer",
+                            "example": 1
+                          },
+                          "class_name": {
+                            "type": "string",
+                            "example": "Class 10"
+                          },
+                          "created_at": {
+                            "type": "string",
+                            "example": "2026-06-03T11:05:00.000Z"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/batch/school-classes/{id}": {
+      "delete": {
+        "summary": "Remove a class tracking assignment link from the school footprint",
+        "tags": [
+          "School Admin - Classes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Target school_class_id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Class tracking uncoupled safely.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Class removed Successfully"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/batch/school-sections/add": {
+      "post": {
+        "summary": "Add a new localized building block division section string",
+        "tags": [
+          "School Admin - Sections"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "section_name"
+                ],
+                "properties": {
+                  "section_name": {
+                    "type": "string",
+                    "example": "A"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Section entity established successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Section created successfully"
+                    },
+                    "section_id": {
+                      "type": "integer",
+                      "example": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/batch/school-sections": {
+      "get": {
+        "summary": "Fetch institutional section divisions list setup arrays",
+        "tags": [
+          "School Admin - Sections"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sections profile data array array sent back successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "section_id": {
+                            "type": "integer",
+                            "example": 1
+                          },
+                          "school_id": {
+                            "type": "integer",
+                            "example": 2
+                          },
+                          "section_name": {
+                            "type": "string",
+                            "example": "A"
+                          },
+                          "created_at": {
+                            "type": "string",
+                            "example": "2026-06-03T11:10:00.000Z"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/batch/school-sections/{id}": {
+      "put": {
+        "summary": "Modify character code identifier mapping for an explicit section node",
+        "tags": [
+          "School Admin - Sections"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Target section_id"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "new_section_name"
+                ],
+                "properties": {
+                  "new_section_name": {
+                    "type": "string",
+                    "example": "B"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Section identity modified updated safely.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Section updated successfully"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Purge localized division layout target mapping record",
+        "tags": [
+          "School Admin - Sections"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Target section_id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Section record wiped safely out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Section removed successfully"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/batch/school-batches/add": {
+      "post": {
+        "summary": "Instantiate active school academic calendar combinations structural batch link profile",
+        "tags": [
+          "School Admin - Batches"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "school_class_id",
+                  "section_id",
+                  "academic_year"
+                ],
+                "properties": {
+                  "school_class_id": {
+                    "type": "integer",
+                    "example": 1
+                  },
+                  "section_id": {
+                    "type": "integer",
+                    "example": 1
+                  },
+                  "academic_year": {
+                    "type": "string",
+                    "example": "2026-2027"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Functional matrix grouping batch generated tracking grid setup complete.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Batch Created Successfully"
+                    },
+                    "batch_id": {
+                      "type": "integer",
+                      "example": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/batch/school-batches": {
+      "get": {
+        "summary": "Fetch full dynamic matrix relational list mapping across all configured school batches",
+        "tags": [
+          "School Admin - Batches"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Full school batch data returned cleanly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "batch_id": {
+                            "type": "integer",
+                            "example": 1
+                          },
+                          "school_class_id": {
+                            "type": "integer",
+                            "example": 1
+                          },
+                          "section_id": {
+                            "type": "integer",
+                            "example": 1
+                          },
+                          "academic_year": {
+                            "type": "string",
+                            "example": "2026-2027"
+                          },
+                          "status": {
+                            "type": "string",
+                            "example": "Active"
+                          },
+                          "class_name": {
+                            "type": "string",
+                            "example": "Class 10"
+                          },
+                          "section_name": {
+                            "type": "string",
+                            "example": "B"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/batch/school-batches/{id}": {
+      "put": {
+        "summary": "Modify configuration elements inside an already running student academic tracking batch link",
+        "tags": [
+          "School Admin - Batches"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Target batch_id"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "school_class_id",
+                  "section_id",
+                  "academic_year"
+                ],
+                "properties": {
+                  "school_class_id": {
+                    "type": "integer",
+                    "example": 1
+                  },
+                  "section_id": {
+                    "type": "integer",
+                    "example": 1
+                  },
+                  "academic_year": {
+                    "type": "string",
+                    "example": "2027-2028"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Batch structural profile attributes changed safely.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Batch Updated Successfully"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Drop a student academic structural batch tracking record vector layout row index line",
+        "tags": [
+          "School Admin - Batches"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Target batch_id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Batch element deleted clean.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Batch deleted successfully"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }
