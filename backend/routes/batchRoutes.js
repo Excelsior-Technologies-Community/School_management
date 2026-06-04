@@ -8,7 +8,7 @@ const { verifyToken, restrictTo } = require('../middleware/authMiddleware')
 
 // super admin routes
 router.post('/global-classes', verifyToken, restrictTo('super_admin'), CreateGlobalClass)
-router.get('/global-classes', verifyToken, restrictTo('super_admin'), getGlobalClasses)
+router.get('/global-classes', verifyToken, getGlobalClasses)
 
 // school admin class routes
 router.post('/school-classes/add', verifyToken, restrictTo('school_admin'), createSchoolClass)
