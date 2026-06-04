@@ -169,9 +169,37 @@ const removeBatch = async (req, res) => {
     }
 }
 
+const toggleBatchStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!id) {
+            return res.status(400).json({ success: false, message: 'Batch ID parameter is required.' });
+        }
+
+        const updatedBatch = await BatchModel.toggleStatus(id);
+
+        if (!updatedBatch) {
+            return res.status(404).json({
+                success: false,
+                message: 'Target batch record not found.'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: `Batch status updated to ${updatedBatch.status}.`,
+            data: updatedBatch
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+}
+
 module.exports = {
     CreateGlobalClass, getGlobalClasses,
     createSchoolClass, listSchoolClassses, deleteSchoolClass,
     addSection, updateSchoolSection, removeSection, listSchoolSections,
-    addBranch, listSchoolBatches, updateSchoolBatch, removeBatch
+    addBranch, listSchoolBatches, updateSchoolBatch, removeBatch,
+    toggleBatchStatus
 };

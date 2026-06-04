@@ -68,7 +68,13 @@ const BatchModel = {
     deleteBatch: async (batchId, schoolId) => {
         const [result] = await db.query('CALL sp_DeleteBatch(?,?)', [batchId, schoolId]);
         return result[0][0];
+    },
+
+    toggleStatus: async (batchId) => {
+        const [rows] = await db.query('CALL sp_ToggleBatchStatus(?)', [batchId]);
+        return rows[0][0];
+
     }
 };
 
- module.exports = BatchModel;
+module.exports = BatchModel;

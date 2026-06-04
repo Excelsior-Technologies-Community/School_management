@@ -3,7 +3,8 @@ const router = express.Router();
 const { CreateGlobalClass, getGlobalClasses,
     createSchoolClass, listSchoolClassses, deleteSchoolClass,
     addSection, updateSchoolSection, removeSection, listSchoolSections,
-    addBranch, listSchoolBatches, updateSchoolBatch, removeBatch } = require('../controllers/batchController')
+    addBranch, listSchoolBatches, updateSchoolBatch, removeBatch,
+    toggleBatchStatus } = require('../controllers/batchController')
 const { verifyToken, restrictTo } = require('../middleware/authMiddleware')
 
 // super admin routes
@@ -26,5 +27,7 @@ router.post('/school-batches/add', verifyToken, restrictTo('school_admin'), addB
 router.get('/school-batches', verifyToken, restrictTo('school_admin'), listSchoolBatches)
 router.put('/school-batches/:id', verifyToken, restrictTo('school_admin'), updateSchoolBatch)
 router.delete('/school-batches/:id', verifyToken, restrictTo('school_admin'), removeBatch)
+
+router.put('/school-batches/toggle-status/:id', verifyToken, restrictTo('school_admin'), toggleBatchStatus);
 
 module.exports = router;
