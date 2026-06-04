@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Building2, LogOut, Users2, UserPlus, Network, Banknote } from 'lucide-react';
+import { Building2, LogOut, Users2, UserPlus, Network, Banknote, Layers, Boxes } from 'lucide-react';
 import axios from 'axios';
 import { backendUrl } from '../App';
 import { toast } from 'react-toastify';
@@ -9,6 +9,8 @@ import StaffDirectory from './SchoolAdminDash/StaffDirectory';
 import StaffForm from './SchoolAdminDash/StaffForm';
 import DepartmentManager from './SchoolAdminDash/DepartmentManager';
 import PayrollManager from './SchoolAdminDash/PayrollManager';
+import GlobalClassSelector from './SchoolAdminDash/GlobalClassSelector';
+import BatchSectionManager from './SchoolAdminDash/BatchSectionManager';
 
 const SchoolAdminDash = () => {
   const { user, logoutState } = useAuth();
@@ -17,6 +19,7 @@ const SchoolAdminDash = () => {
   const [staffList, setStaffList] = useState([]);
   const [payrollList, setPayrollList] = useState([]);
   const [departmentList, setDepartmentList] = useState([]);
+  const [activeSchoolClasses, setActiveSchoolClasses] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const [staffForm, setStaffForm] = useState({ roleId: 3, name: '', email: '', departmentId: '' });
@@ -84,10 +87,22 @@ const SchoolAdminDash = () => {
     }
   };
 
+  const fetchSchoolClasses = async () => {
+    try {
+      const res = await axios.get(`${backendUrl}/api/batch/school-classes`, getAxiosConfig());
+      if (res.data.success) {
+        setActiveSchoolClasses(res.data.data)
+      }
+    } catch (error) {
+      toast.error('Failed to load school classes.')
+    }
+  }
+
   useEffect(() => {
     fetchStaffDirectory();
     fetchPayroll();
     fetchDepartments();
+    fetchSchoolClasses();
   }, []);
 
   const handleStaffSubmit = async (e) => {
@@ -303,6 +318,18 @@ const SchoolAdminDash = () => {
           >
             <Banknote size={18} /> Payroll
           </button>
+          <button
+            onClick={() => { setActiveTab('classes'); setCurrentPage(1); }}
+            className={`py-4 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'classes' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+          >
+            <Layers size={18} /> Class Creation
+          </button>
+          <button
+            onClick={() => { setActiveTab('batches-sections'); setCurrentPage(1); }}
+            className={`py-4 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'batches-sections' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+          >
+            <Boxes size={18} /> Sections & Batches
+          </button>
         </div>
       </div>
 
@@ -373,6 +400,24 @@ const SchoolAdminDash = () => {
             handleClearSalary={handleClearSalary}
           />
         )}
+
+        {/* Tab for classes selection given by super admin global classes*/}
+        {activeTab === 'classes' && (
+          <GlobalClassSelector
+            getAxiosConfig={getAxiosConfig}
+            activeSchoolClasses={activeSchoolClasses}
+            fetchSchoolClasses={fetchSchoolClasses}
+          />
+        )}
+        
+        {/* Tab for sections crud and batch crud */}
+        {activeTab === 'batches-sections' && (
+          <BatchSectionManager
+            getAxiosConfig={getAxiosConfig}
+            activeSchoolClasses={activeSchoolClasses}
+          />
+        )}
+
       </div>
     </div>
   );
