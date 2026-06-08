@@ -1,14 +1,16 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react';
 import { backendUrl } from '../../App';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-// Added ToggleLeft for status toggle action icon
-import { Boxes, ChevronLeft, ChevronRight, Edit3, PlusCircle, RefreshCcw, RefreshCw, Trash2, XCircle, ToggleLeft } from 'lucide-react';
+import { Boxes, ChevronLeft, ChevronRight, Edit3, PlusCircle, RefreshCw, Trash2, XCircle, ToggleLeft, Layers } from 'lucide-react';
 
-const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses }) => {
+const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses, fetchSchoolClasses }) => {
     const [batches, setBatches] = useState([]);
     const [sections, setSections] = useState([]);
     const [loading, setLoading] = useState(false);
+
+    // Master template import form state
+    const [selectedMasterClassId, setSelectedMasterClassId] = useState('');
 
     // Batches form state
     const [selectedClassId, setSelectedClassId] = useState('');
@@ -17,18 +19,95 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses }) => {
     const [isEditingBatch, setIsEditingBatch] = useState(false);
     const [editingBatchId, setEditingBatchId] = useState(null);
 
-    // sections form state
+    // Sections form state
     const [sectionName, setSectionName] = useState('');
     const [isEditingSection, setIsEditingSection] = useState(false);
     const [editingSectionId, setEditingSectionId] = useState(null);
 
-    // pagination state
+    // Pagination states
+    const [currentClassPage, setCurrentClassPage] = useState(1);
     const [currentSectionPage, setCurrentSectionPage] = useState(1);
     const [currentBatchPage, setCurrentBatchPage] = useState(1);
-    const rowsPerPage = 2;
+    const rowsPerPage = 5;
+
+    // Global page states
+    const [globalClasses, setGlobalClasses] = useState([]);
+    const [submitting, setSubmitting] = useState(false);
+
+    const fetchGlobalClasses = async () => {
+        setLoading(true);
+        try {
+            const res = await axios.get(`${backendUrl}/api/batch/global-classes`, getAxiosConfig());
+            if (res.data.success) {
+                setGlobalClasses(res.data.data);
+            }
+        } catch (err) {
+            toast.error('Failed to sync master global template pool.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchGlobalClasses();
+        syncDataGrid();
+    }, []);
+
+    // Reset pagination headers when array lengths change
+    useEffect(() => {
+        setCurrentClassPage(1);
+    }, [activeSchoolClasses.length]);
+
+    useEffect(() => {
+        setCurrentSectionPage(1);
+    }, [sections.length]);
+
+    useEffect(() => {
+        setCurrentBatchPage(1);
+    }, [batches.length]);
+
+    const handleLinkClass = async (e) => {
+        e.preventDefault();
+        if (!selectedMasterClassId) return toast.error('Please choose a standard class template.');
+
+        setSubmitting(true);
+        try {
+            const res = await axios.post(`${backendUrl}/api/batch/school-classes/add`, { class_id: selectedMasterClassId }, getAxiosConfig());
+            if (res.data.success) {
+                toast.success(res.data.message || 'Class template linked successfully!');
+                setSelectedMasterClassId('');
+                if (fetchSchoolClasses) fetchSchoolClasses();
+            }
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Error processing class template link.');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleUnlinkClass = async (schoolClassId) => {
+        if (!window.confirm('Drop this class tier? This will break dependent sections or batch structures!')) return;
+        try {
+            const res = await axios.delete(`${backendUrl}/api/batch/school-classes/${schoolClassId}`, getAxiosConfig());
+            if (res.data.success) {
+                toast.success('Class footprint unlinked cleanly.');
+                if (fetchSchoolClasses) fetchSchoolClasses();
+            }
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Error executing class deletion.');
+        }
+    };
+
+    // Filter out classes that have already been allocated to this school
+    const availableTemplates = globalClasses.filter(
+        gc => !activeSchoolClasses.some(sc => sc.class_id === gc.class_id)
+    );
 
     const syncDataGrid = async () => {
         setLoading(true);
+
+
+        
         try {
             const [resBatch, resSection] = await Promise.all([
                 axios.get(`${backendUrl}/api/batch/school-batches`, getAxiosConfig()),
@@ -36,30 +115,16 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses }) => {
             ]);
             if (resBatch.data.success) {
                 setBatches(resBatch.data.data);
-                setCurrentBatchPage(1);
             }
             if (resSection.data.success) {
                 setSections(resSection.data.data);
-                setCurrentSectionPage(1);
             }
-
         } catch (error) {
-            toast.error('Failed to sync batches and sections.')
+            toast.error('Failed to sync batches and sections.');
         } finally {
             setLoading(false);
         }
     };
-
-    // reset page to 1 if sections are removed/added
-    useEffect(() => {
-        setCurrentSectionPage(1);
-    }, [sections.length]);
-
-    // reset page to 1 if batches are removed/added
-    useEffect(() => {
-        setCurrentBatchPage(1);
-    }, [batches.length]);
-
 
     // SECTION CRUD LOGIC
     const handleSectionSubmit = async (e) => {
@@ -83,7 +148,7 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses }) => {
                 }
             }
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Error processing structural section parameters.')
+            toast.error(error.response?.data?.message || 'Error processing structural section parameters.');
         }
     };
 
@@ -92,25 +157,25 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses }) => {
         try {
             const res = await axios.delete(`${backendUrl}/api/batch/school-sections/${id}`, getAxiosConfig());
             if (res.data.success) {
-                toast.success('Section dropped successfully.')
+                toast.success('Section dropped successfully.');
                 syncDataGrid();
             }
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Error while deleting section.')
+            toast.error(error.response?.data?.message || 'Error while deleting section.');
         }
-    }
+    };
 
     const startEditSection = (row) => {
         setSectionName(row.section_name);
         setEditingSectionId(row.section_id);
         setIsEditingSection(true);
-    }
+    };
 
     const resetSectionForm = () => {
         setSectionName('');
         setIsEditingSection(false);
         setEditingSectionId(null);
-    }
+    };
 
     // BATCHES CRUD LOGIC
     const handleBatchSubmit = async (e) => {
@@ -123,7 +188,7 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses }) => {
             if (isEditingBatch) {
                 const res = await axios.put(`${backendUrl}/api/batch/school-batches/${editingBatchId}`, { school_class_id: selectedClassId, section_id: selectedSectionId, academic_year: academicYear }, getAxiosConfig());
                 if (res.data.success) {
-                    toast.success('Batch updated successfully.')
+                    toast.success('Batch updated successfully.');
                     resetBatchForm();
                     syncDataGrid();
                 }
@@ -131,9 +196,7 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses }) => {
                 const res = await axios.post(`${backendUrl}/api/batch/school-batches/add`, { school_class_id: selectedClassId, section_id: selectedSectionId, academic_year: academicYear }, getAxiosConfig());
                 if (res.data.success) {
                     toast.success('Batch created.');
-                    setSelectedClassId('');
-                    setSelectedSectionId('');
-                    setAcademicYear('');
+                    resetBatchForm();
                     syncDataGrid();
                 }
             }
@@ -155,7 +218,6 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses }) => {
         }
     };
 
-    // New handle function for triggering status changes
     const handleToggleBatchStatus = async (id) => {
         try {
             const res = await axios.put(`${backendUrl}/api/batch/school-batches/toggle-status/${id}`, {}, getAxiosConfig());
@@ -182,16 +244,17 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses }) => {
         setAcademicYear('');
         setEditingBatchId(null);
         setIsEditingBatch(false);
-    }
+    };
 
-    useEffect(() => {
-        syncDataGrid();
-    }, [])
+    // Pagination calculations
+    const indexOfClassLastRow = currentClassPage * rowsPerPage;
+    const indexOfClassFirstRow = indexOfClassLastRow - rowsPerPage;
+    const displayClassRows = activeSchoolClasses.slice(indexOfClassFirstRow, indexOfClassLastRow);
+    const totalClassPages = Math.ceil(activeSchoolClasses.length / rowsPerPage);
 
-    // sections pagination parameters
-    const indexOfLastRow = currentSectionPage * rowsPerPage;
-    const indexOfFirstRow = indexOfLastRow - rowsPerPage;
-    const displaySectionRows = sections.slice(indexOfFirstRow, indexOfLastRow);
+    const indexOfSectionLastRow = currentSectionPage * rowsPerPage;
+    const indexOfSectionFirstRow = indexOfSectionLastRow - rowsPerPage;
+    const displaySectionRows = sections.slice(indexOfSectionFirstRow, indexOfSectionLastRow);
     const totalSectionPages = Math.ceil(sections.length / rowsPerPage);
 
     const indexOfBatchLastRow = currentBatchPage * rowsPerPage;
@@ -201,9 +264,138 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses }) => {
 
     return (
         <div className='space-y-8'>
-            {/* Section creation */}
+            {/* Class Setup Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Add section left side panel */}
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 h-fit">
+                    <h3 className="text-sm font-bold text-slate-800 tracking-wide uppercase mb-4 flex items-center gap-1.5">
+                        <PlusCircle size={16} className="text-blue-600" />
+                        Import Standard Class
+                    </h3>
+                    <form onSubmit={handleLinkClass} className="space-y-4">
+                        <div>
+                            <label className="text-xs font-bold text-slate-500">Available Master Templates</label>
+                            <select
+                                className="w-full border p-2 mt-1.5 bg-white rounded-lg outline-none text-sm focus:border-blue-500 shadow-sm disabled:opacity-60"
+                                value={selectedMasterClassId}
+                                onChange={e => setSelectedMasterClassId(e.target.value)}
+                                disabled={submitting || availableTemplates.length === 0}
+                            >
+                                <option value="">-- Select Class --</option>
+                                {availableTemplates.map(cls => (
+                                    <option key={cls.class_id} value={cls.class_id}>{cls.class_name}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {availableTemplates.length === 0 && !loading && (
+                            <p className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 p-2 rounded border border-emerald-100">
+                                ✓ Institutional matrix configuration fully sync'd with all existing master global tiers.
+                            </p>
+                        )}
+
+                        <button
+                            type="submit"
+                            disabled={submitting || !selectedMasterClassId}
+                            className="w-full text-white font-bold py-2 rounded-lg text-xs shadow bg-blue-600 hover:bg-blue-700 transition-colors disabled:opacity-50"
+                        >
+                            {submitting ? 'Mapping Framework Reference...' : 'Add Class To Campus'}
+                        </button>
+                    </form>
+                </div>
+
+                <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div className="p-4 bg-slate-50/50 border-b border-slate-100 flex justify-between items-center">
+                        <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                            <Layers size={14} className="text-slate-400" /> Institution classes ({activeSchoolClasses.length})
+                        </h3>
+                        <button onClick={fetchGlobalClasses} className="p-1.5 border bg-white rounded-md text-slate-400 hover:text-blue-600 transition-colors">
+                            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                        </button>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr className="bg-slate-100/50 border-b border-slate-200 text-slate-500 font-bold uppercase">
+                                    <th className="py-3 px-5 text-center w-16">ID</th>
+                                    <th className="py-3 px-4">Class / Standard</th>
+                                    <th className="py-3 px-4 text-center w-28">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 text-slate-600">
+                                {displayClassRows.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="3" className="text-center py-8 text-slate-400 font-medium">No classes added yet.</td>
+                                    </tr>
+                                ) : (
+                                    displayClassRows.map((row) => (
+                                        <tr key={row.school_class_id} className="hover:bg-slate-50/50">
+                                            <td className="py-3 px-5 text-center font-mono font-bold text-slate-400 bg-slate-50/20">
+                                                {row.school_class_id}
+                                            </td>
+                                            <td className="py-3 px-4 font-bold text-slate-800">
+                                                {row.class_name}
+                                            </td>
+                                            <td className="py-3 px-4 text-center">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleUnlinkClass(row.school_class_id)}
+                                                    className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-all"
+                                                    title="Unlink System Node Template"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+
+                        {/* Class Pagination Controls */}
+                        {totalClassPages > 1 && (
+                            <div className="p-3 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center text-[11px] font-medium text-slate-600">
+                                <div>
+                                    Showing <span className="font-bold text-slate-800">{indexOfClassFirstRow + 1}</span> to <span className="font-bold text-slate-800">{Math.min(indexOfClassLastRow, activeSchoolClasses.length)}</span> of <span className="font-bold text-slate-800">{activeSchoolClasses.length}</span> entries
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => currentClassPage > 1 && setCurrentClassPage(currentClassPage - 1)}
+                                        disabled={currentClassPage === 1}
+                                        className="p-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white transition-colors"
+                                    >
+                                        <ChevronLeft size={14} />
+                                    </button>
+                                    {[...Array(totalClassPages)].map((_, idx) => (
+                                        <button
+                                            key={idx}
+                                            type="button"
+                                            onClick={() => setCurrentClassPage(idx + 1)}
+                                            className={`px-2 py-1 rounded-md border transition-all text-[11px] font-bold ${currentClassPage === idx + 1
+                                                ? 'bg-blue-600 border-blue-600 text-white'
+                                                : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600'
+                                                }`}
+                                        >
+                                            {idx + 1}
+                                        </button>
+                                    ))}
+                                    <button
+                                        type="button"
+                                        onClick={() => currentClassPage < totalClassPages && setCurrentClassPage(currentClassPage + 1)}
+                                        disabled={currentClassPage === totalClassPages}
+                                        className="p-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white transition-colors"
+                                    >
+                                        <ChevronRight size={14} />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Section Creation Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 h-fit">
                     <h3 className="text-sm font-bold text-slate-800 tracking-wide uppercase mb-4 flex items-center gap-1.5">
                         <PlusCircle size={16} className={isEditingSection ? "text-amber-600" : "text-blue-600"} />
@@ -234,7 +426,6 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses }) => {
                     </form>
                 </div>
 
-                {/* Right side ssection list */}
                 <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                     <div className="p-4 bg-slate-50/50 border-b border-slate-100 flex justify-between items-center">
                         <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5"><Boxes size={14} /> Active School Sections</h3>
@@ -254,7 +445,7 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses }) => {
                             <tbody className="divide-y divide-slate-100 text-slate-600">
                                 {displaySectionRows.length === 0 ? (
                                     <tr>
-                                        <td colSpan="3" className="text-center py-6 text-slate-400 font-medium">No school school sections found.</td>
+                                        <td colSpan="3" className="text-center py-6 text-slate-400 font-medium">No school sections found.</td>
                                     </tr>
                                 ) : (
                                     displaySectionRows.map(row => (
@@ -273,11 +464,11 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses }) => {
                             </tbody>
                         </table>
 
-                        {/* Pagination Controls */}
+                        {/* Section Pagination Controls */}
                         {totalSectionPages > 1 && (
                             <div className="p-3 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center text-[11px] font-medium text-slate-600">
                                 <div>
-                                    Showing <span className="font-bold text-slate-800">{indexOfFirstRow + 1}</span> to <span className="font-bold text-slate-800">{Math.min(indexOfLastRow, sections.length)}</span> of <span className="font-bold text-slate-800">{sections.length}</span> entries
+                                    Showing <span className="font-bold text-slate-800">{indexOfSectionFirstRow + 1}</span> to <span className="font-bold text-slate-800">{Math.min(indexOfSectionLastRow, sections.length)}</span> of <span className="font-bold text-slate-800">{sections.length}</span> entries
                                 </div>
                                 <div className="flex items-center gap-1">
                                     <button
@@ -316,9 +507,8 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses }) => {
                 </div>
             </div>
 
-            {/* Batch creation */}
+            {/* Batch Creation Grid */}
             <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
-                {/* Left side add batch panel */}
                 <div className='bg-white rounded-2xl shadow-sm border border-slate-200 p-5 h-fit'>
                     <h3 className="text-sm font-bold text-slate-800 tracking-wide uppercase mb-4 flex items-center gap-1.5">
                         <PlusCircle size={16} className={isEditingBatch ? "text-amber-600" : "text-blue-600"} />
@@ -362,7 +552,8 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses }) => {
                                 placeholder='e.g. 2026-2027'
                                 onChange={e => setAcademicYear(e.target.value)}
                                 required
-                            />
+                            >
+                            </input>
                         </div>
                         <div className="flex gap-2 pt-1">
                             <button type="submit" className={`flex-1 text-white font-bold py-2 rounded-lg text-xs shadow transition-colors ${isEditingBatch ? 'bg-amber-600 hover:bg-amber-700' : 'bg-blue-600 hover:bg-blue-700'}`}>
@@ -377,38 +568,37 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses }) => {
                     </form>
                 </div>
 
-                {/* Right side batch list */}
-                <div className='lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden'>
+                <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                     <div className="p-4 bg-slate-50/50 border-b border-slate-100 flex justify-between items-center">
-                        <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5"><Boxes size={14} /> Active School Batches</h3>
+                        <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5"><Boxes size={14} /> Active Batches</h3>
                         <button onClick={syncDataGrid} className="p-1.5 border bg-white rounded-md text-slate-400 hover:text-blue-600 transition-colors">
                             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
                         </button>
                     </div>
-                    <div className='overflow-x-auto max-h-60'>
-                        <table className='w-full text-left border-collapse text-xs'>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse text-xs">
                             <thead>
-                                <tr className='bg-slate-100/50 border-b border-slate-200 text-slate-500 font-bold uppercase'>
-                                    <th className='py-2.5 px-5 text-center w-16'>ID</th>
-                                    <th className='py-2.5 px-4'>Class</th>
-                                    <th className='py-2.5 px-4'>Section</th>
-                                    <th className='py-2.5 px-4'>Academic Year</th>
+                                <tr className="bg-slate-100/50 border-b border-slate-200 text-slate-500 font-bold uppercase">
+                                    <th className="py-2.5 px-5 text-center">ID</th>
+                                    <th className="py-2.5 px-4">Class</th>
+                                    <th className="py-2.5 px-4">Section</th>
+                                    <th className="py-2.5 px-4">Academic Year</th>
                                     <th className='py-2.5 px-4'>Status</th>
-                                    <th className='py-2.5 px-5 text-center w-28'>Actions</th>
+                                    <th className="py-2.5 px-4 text-center w-28">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className='divide-y divide-slate-100 text-slate-600'>
+                            <tbody className="divide-y divide-slate-100 text-slate-600">
                                 {displayBatchRows.length === 0 ? (
                                     <tr>
-                                        <td colSpan="6" className="text-center py-6 text-slate-400 font-medium">No school batches found.</td>
+                                        <td colSpan="6" className="text-center py-6 text-slate-400 font-medium">No batches created yet.</td>
                                     </tr>
                                 ) : (
                                     displayBatchRows.map(row => (
-                                        <tr key={row.batch_id} className='hover:bg-slate-50/50'>
-                                            <td className='py-2.5 px-5 text-center font-mono font-bold'>{row.batch_id}</td>
-                                            <td className='py-2.5 px-4 font-bold text-slate-800'>{row.class_name}</td>
-                                            <td className='py-2.5 px-4 font-bold text-slate-800'>{row.section_name}</td>
-                                            <td className='py-2.5 px-4 font-bold text-slate-800'>{row.academic_year}</td>
+                                        <tr key={row.batch_id} className="hover:bg-slate-50/50">
+                                            <td className="py-2.5 px-5 text-center font-mono font-bold text-slate-400 bg-slate-50/20">{row.batch_id}</td>
+                                            <td className="py-2.5 px-4 font-bold text-slate-800">{row.class_name}</td>
+                                            <td className="py-2.5 px-4 font-medium text-slate-600">{row.section_name}</td>
+                                            <td className="py-2.5 px-4 text-slate-600">{row.academic_year}</td>
                                             <td className='py-2.5 px-4 vertical-middle'>
                                                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase ${row.status?.toLowerCase() === 'active'
                                                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
@@ -423,8 +613,8 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses }) => {
                                                         onClick={() => handleToggleBatchStatus(row.batch_id)}
                                                         disabled={row.status?.toLowerCase() !== 'active'}
                                                         className={`p-1 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${row.status?.toLowerCase() === 'active'
-                                                                ? 'text-emerald-500 hover:text-emerald-600'
-                                                                : 'text-slate-300'
+                                                            ? 'text-emerald-500 hover:text-emerald-600'
+                                                            : 'text-slate-300'
                                                             }`}
                                                         title={row.status?.toLowerCase() === 'active' ? 'Deactivate batch' : 'Batch is inactive'}
                                                     ><ToggleLeft size={13} /></button>
@@ -438,18 +628,18 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses }) => {
                             </tbody>
                         </table>
 
-                        {/* Pagination Controls */}
+                        {/* Batch Pagination Controls */}
                         {totalBatchPages > 1 && (
-                            <div className='p-3 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center text-[11px] font-medium text-slate-600'>
+                            <div className="p-3 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center text-[11px] font-medium text-slate-600">
                                 <div>
                                     Showing <span className="font-bold text-slate-800">{indexOfBatchFirstRow + 1}</span> to <span className="font-bold text-slate-800">{Math.min(indexOfBatchLastRow, batches.length)}</span> of <span className="font-bold text-slate-800">{batches.length}</span> entries
                                 </div>
-                                <div className='flex items-center gap-1'>
+                                <div className="flex items-center gap-1">
                                     <button
-                                        type='button'
+                                        type="button"
                                         onClick={() => currentBatchPage > 1 && setCurrentBatchPage(currentBatchPage - 1)}
                                         disabled={currentBatchPage === 1}
-                                        className='p-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white transition-colors'
+                                        className="p-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white transition-colors"
                                     >
                                         <ChevronLeft size={14} />
                                     </button>
@@ -481,7 +671,7 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses }) => {
                 </div>
             </div>
         </div>
-    )
-}
+    );
+};
 
-export default BatchSectionManager
+export default BatchSectionManager;
