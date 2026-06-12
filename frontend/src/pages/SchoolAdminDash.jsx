@@ -12,7 +12,6 @@ import PayrollManager from './SchoolAdminDash/PayrollManager';
 import BatchSectionManager from './SchoolAdminDash/BatchSectionManager';
 import BranchSubjectManager from './SchoolAdminDash/BranchSubjectManager';
 import TimetableManagement from './SchoolAdminDash/TimetableManagement';
-import ManagePeriods from './SchoolAdminDash/ManagePeriods';
 
 const SchoolAdminDash = () => {
   const { user, logoutState } = useAuth();

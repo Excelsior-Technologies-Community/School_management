@@ -41,6 +41,32 @@ const TimetableManagement = ({ schoolId, userContext }) => {
   });
   const [selectedSubDate, setSelectedSubDate] = useState(new Date().toISOString().split('T')[0]);
 
+  const [substitutionDates, setSubstitutionDates] = useState([]);
+
+  // 1. Fetch distinct dates with logged actions from DB
+  const fetchActiveSubstitutionDates = async () => {
+    if (!selectedBranchId) return;
+    try {
+      const response = await axios.get(`${backendUrl}/api/timetable/substitutions/active-dates?branch_id=${selectedBranchId}`, getAxiosConfig());
+      if (response.data.success) {
+        const dates = response.data.dates;
+        setSubstitutionDates(dates);
+
+        // If there are dates available and no date is selected yet (or old selection isn't relevant)
+        if (dates.length > 0 && !dates.includes(selectedSubDate)) {
+          setSelectedSubDate(dates[0]); // Auto-selects the newest date ("2026-06-15")
+        }
+      }
+    } catch (error) {
+      console.error("Error loading substitution calendar map:", error);
+    }
+  };
+
+  // 2. Trigger fetch when component mounts or branch switches
+  useEffect(() => {
+    fetchActiveSubstitutionDates();
+  }, [selectedBranchId]);
+
   useEffect(() => {
     fetchBranches();
     fetchBatches();
@@ -128,7 +154,6 @@ const TimetableManagement = ({ schoolId, userContext }) => {
     setLoading(true);
     try {
       const res = await axios.get(`${backendUrl}/api/timetable/substitutions?branch_id=${selectedBranchId}&date=${selectedSubDate}`, getAxiosConfig());
-      console.log(res.data.data);
 
       if (res.data.success) setSubstitutions(res.data.data[0]);
     } catch (error) {
@@ -240,12 +265,13 @@ const TimetableManagement = ({ schoolId, userContext }) => {
     try {
       const res = await axios.post(`${backendUrl}/api/timetable/substitutions/add`, subForm, getAxiosConfig());
       if (res.data.success) {
-        toast.success('Sunstitution logged.');
+        toast.success('Substitution logged.');
         setSubForm({ time_table_id: '', substitute_teacher_id: '', substitution_date: selectedSubDate, reason: '', remark: '', status: 'Active' });
         fetchSubstitutions();
+        fetchActiveSubstitutionDates();
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Substitution failed.');
+      toast.error(error.response?.data?.message || 'Substitution failed.'); 
     }
   };
 
@@ -256,6 +282,7 @@ const TimetableManagement = ({ schoolId, userContext }) => {
       if (res.data.success) {
         toast.success('Substitution cancelled.');
         fetchSubstitutions();
+        fetchActiveSubstitutionDates();
       }
     } catch (err) {
       toast.error('Failed to cancel substitution.');
@@ -450,7 +477,14 @@ const TimetableManagement = ({ schoolId, userContext }) => {
                   onChange={e => { setSelectedBatchId(e.target.value); setTimetable([]); }}
                 >
                   <option value="">-- Select Batch --</option>
-                  {batches.map(b => <option key={b.batch_id} value={b.batch_id}>{b.class_name} - {b.section_name} ({b.academic_year})</option>)}
+                  {batches
+                    .filter(b => String(b.branch_id) === String(selectedBranchId))
+                    .map(b => (
+                      <option key={b.batch_id} value={b.batch_id}>
+                        {b.class_name} - {b.section_name} ({b.academic_year})
+                      </option>
+                    ))
+                  }
                 </select>
               </div>
               <button onClick={fetchTimetable} className='p-1.5 border bg-white rounded text-slate-400 hover:text-blue-600 transition-colors'>
@@ -598,6 +632,7 @@ const TimetableManagement = ({ schoolId, userContext }) => {
         {/* SUBSTITUTIONS TAB */}
         {activeTab === 'substitutions' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left Column: Form & Calendar Widget */}
             <div className="lg:col-span-1 space-y-6">
               <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
                 <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
@@ -606,7 +641,9 @@ const TimetableManagement = ({ schoolId, userContext }) => {
                 </h3>
                 <form onSubmit={handleSubSubmit} className="space-y-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1">Timetable Slot</label>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">
+                      Timetable Slot {timetable.length === 0 && <span className="text-rose-500 font-normal">(Select a batch in the Timetables tab first)</span>}
+                    </label>
                     <select
                       className="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white"
                       value={subForm.time_table_id}
@@ -638,7 +675,7 @@ const TimetableManagement = ({ schoolId, userContext }) => {
                     <input
                       type="date"
                       className="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white"
-                      value={subForm.substitution_date}
+                      value={subForm.substitution_date || selectedSubDate}
                       onChange={e => setSubForm({ ...subForm, substitution_date: e.target.value })}
                       required
                     />
@@ -649,7 +686,7 @@ const TimetableManagement = ({ schoolId, userContext }) => {
                       type="text"
                       className="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white"
                       placeholder="e.g. Medical Leave"
-                      value={subForm.reason}
+                      value={subForm.reason || ''}
                       onChange={e => setSubForm({ ...subForm, reason: e.target.value })}
                     />
                   </div>
@@ -658,17 +695,57 @@ const TimetableManagement = ({ schoolId, userContext }) => {
                     <textarea
                       rows={2}
                       className="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white resize-none"
-                      value={subForm.remark}
+                      placeholder="Optional notes..."
+                      value={subForm.remark || ''}
                       onChange={e => setSubForm({ ...subForm, remark: e.target.value })}
                     />
                   </div>
-                  <button type="submit" className="w-full px-4 py-2 text-xs font-bold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                  <button
+                    type="submit"
+                    disabled={timetable.length === 0}
+                    className={`w-full px-4 py-2 text-xs font-bold text-white rounded-lg transition-colors ${timetable.length === 0 ? 'bg-slate-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+                  >
                     Log Substitution
                   </button>
                 </form>
               </div>
+
+              {/* Active Substitution Dates Widget (Moved cleanly out of table elements) */}
+              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <Calendar size={14} className="text-indigo-500" />
+                  Active Substitution Dates
+                </h3>
+
+                {substitutionDates.length === 0 ? (
+                  <div className="text-xs text-slate-400 text-center py-4 border border-dashed border-slate-200 rounded-lg">
+                    No logged substitutions found for this branch.
+                  </div>
+                ) : (
+                  <div className="max-h-48 overflow-y-auto custom-scrollbar flex flex-wrap gap-2 pr-1">
+                    {substitutionDates.map((dateStr) => {
+                      const isSelected = selectedSubDate === dateStr;
+                      return (
+                        <button
+                          key={dateStr}
+                          type="button"
+                          onClick={() => setSelectedSubDate(dateStr)}
+                          className={`text-xs px-2.5 py-1.5 font-semibold rounded-lg border transition-all flex items-center gap-1.5 ${isSelected
+                            ? 'bg-blue-50 border-blue-300 text-blue-700 shadow-sm'
+                            : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:border-slate-300'
+                            }`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-blue-600' : 'bg-slate-400'}`}></span>
+                          {new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
 
+            {/* Right Column: Dynamic Log Entries Data Grid */}
             <div className="lg:col-span-2">
               <div className="mb-4 flex flex-wrap gap-4 items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -708,7 +785,7 @@ const TimetableManagement = ({ schoolId, userContext }) => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {substitutions.length === 0 ? (
+                    {!Array.isArray(substitutions) || substitutions.length === 0 ? (
                       <tr>
                         <td colSpan={4} className="py-8 text-center text-slate-400">
                           No substitutions logged for this date.
@@ -723,12 +800,9 @@ const TimetableManagement = ({ schoolId, userContext }) => {
                               {sub.subject_name} — Period {sub.period_no || '—'}
                             </div>
                           </td>
-
-                          {/* Substitute Teacher Column */}
                           <td className="py-3 px-4 text-slate-600 font-medium">
                             {sub.substitute_teacher}
                           </td>
-
                           <td className="py-3 px-4 text-slate-600">{sub.reason || '—'}</td>
                           <td className="py-3 px-4 text-right">
                             <button
