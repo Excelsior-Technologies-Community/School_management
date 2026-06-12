@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Building2, LogOut, Users2, UserPlus, Network, Banknote, Layers, Boxes } from 'lucide-react';
+import { Building2, LogOut, Users2, UserPlus, Network, Banknote, Layers, Boxes, GitBranch, Clock } from 'lucide-react';
 import axios from 'axios';
 import { backendUrl } from '../App';
 import { toast } from 'react-toastify';
@@ -9,8 +9,10 @@ import StaffDirectory from './SchoolAdminDash/StaffDirectory';
 import StaffForm from './SchoolAdminDash/StaffForm';
 import DepartmentManager from './SchoolAdminDash/DepartmentManager';
 import PayrollManager from './SchoolAdminDash/PayrollManager';
-import GlobalClassSelector from './SchoolAdminDash/GlobalClassSelector';
 import BatchSectionManager from './SchoolAdminDash/BatchSectionManager';
+import BranchSubjectManager from './SchoolAdminDash/BranchSubjectManager';
+import TimetableManagement from './SchoolAdminDash/TimetableManagement';
+import ManagePeriods from './SchoolAdminDash/ManagePeriods';
 
 const SchoolAdminDash = () => {
   const { user, logoutState } = useAuth();
@@ -319,16 +321,22 @@ const SchoolAdminDash = () => {
             <Banknote size={18} /> Payroll
           </button>
           <button
-            onClick={() => { setActiveTab('classes'); setCurrentPage(1); }}
-            className={`py-4 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'classes' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+            onClick={() => { setActiveTab('branches-subjects'); setCurrentPage(1); }}
+            className={`py-4 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'branches-subjects' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
           >
-            <Layers size={18} /> Class Creation
+            <GitBranch size={18} /> Branches & Subjects
           </button>
           <button
             onClick={() => { setActiveTab('batches-sections'); setCurrentPage(1); }}
             className={`py-4 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'batches-sections' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
           >
             <Boxes size={18} /> Sections & Batches
+          </button>
+          <button
+            onClick={() => { setActiveTab('timetable'); setCurrentPage(1); }}
+            className={`py-4 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'timetable' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+          >
+            <Clock size={18} /> Timetable
           </button>
         </div>
       </div>
@@ -401,20 +409,25 @@ const SchoolAdminDash = () => {
           />
         )}
 
-        {/* Tab for classes selection given by super admin global classes*/}
-        {activeTab === 'classes' && (
-          <GlobalClassSelector
+        {/* Tab for school branches and subjects */}
+        {activeTab === 'branches-subjects' && (
+          <BranchSubjectManager getAxiosConfig={getAxiosConfig} />
+        )}
+
+
+        {/* Tab for school classes, sections crud and batch crud */}
+        {activeTab === 'batches-sections' && (
+          <BatchSectionManager
             getAxiosConfig={getAxiosConfig}
             activeSchoolClasses={activeSchoolClasses}
             fetchSchoolClasses={fetchSchoolClasses}
           />
         )}
-        
-        {/* Tab for sections crud and batch crud */}
-        {activeTab === 'batches-sections' && (
-          <BatchSectionManager
-            getAxiosConfig={getAxiosConfig}
-            activeSchoolClasses={activeSchoolClasses}
+
+        {activeTab === 'timetable' && (
+          <TimetableManagement
+            schoolId={user?.school_id}
+            userContext={user}
           />
         )}
 
