@@ -8,11 +8,13 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses, fetchSchoolC
     const [batches, setBatches] = useState([]);
     const [sections, setSections] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [branches, setBranches] = useState([]);
 
     // Master template import form state
     const [selectedMasterClassId, setSelectedMasterClassId] = useState('');
 
     // Batches form state
+    const [selectedBranchId, setSelectedBranchId] = useState('');
     const [selectedClassId, setSelectedClassId] = useState('');
     const [selectedSectionId, setSelectedSectionId] = useState('');
     const [academicYear, setAcademicYear] = useState('');
@@ -34,6 +36,15 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses, fetchSchoolC
     const [globalClasses, setGlobalClasses] = useState([]);
     const [submitting, setSubmitting] = useState(false);
 
+    const fetchBranches = async () => {
+        try {
+            const res = await axios.get(`${backendUrl}/api/academic/branches`, getAxiosConfig());
+            if (res.data.success) setBranches(res.data.data);
+        } catch (error) {
+            toast.error('Failed to load organizational branches.');
+        }
+    };
+
     const fetchGlobalClasses = async () => {
         setLoading(true);
         try {
@@ -50,6 +61,7 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses, fetchSchoolC
 
     useEffect(() => {
         fetchGlobalClasses();
+        fetchBranches();
         syncDataGrid();
     }, []);
 
@@ -106,8 +118,6 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses, fetchSchoolC
     const syncDataGrid = async () => {
         setLoading(true);
 
-
-        
         try {
             const [resBatch, resSection] = await Promise.all([
                 axios.get(`${backendUrl}/api/batch/school-batches`, getAxiosConfig()),
@@ -180,20 +190,27 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses, fetchSchoolC
     // BATCHES CRUD LOGIC
     const handleBatchSubmit = async (e) => {
         e.preventDefault();
-        if (!selectedClassId || !selectedSectionId || !academicYear) {
+        if (!selectedBranchId || !selectedClassId || !selectedSectionId || !academicYear) {
             return toast.error('Please fill all the fields.');
         }
 
+        const payload = {
+            branch_id: selectedBranchId,
+            school_class_id: selectedClassId,
+            section_id: selectedSectionId,
+            academic_year: academicYear
+        };
+
         try {
             if (isEditingBatch) {
-                const res = await axios.put(`${backendUrl}/api/batch/school-batches/${editingBatchId}`, { school_class_id: selectedClassId, section_id: selectedSectionId, academic_year: academicYear }, getAxiosConfig());
+                const res = await axios.put(`${backendUrl}/api/batch/school-batches/${editingBatchId}`, payload, getAxiosConfig());
                 if (res.data.success) {
                     toast.success('Batch updated successfully.');
                     resetBatchForm();
                     syncDataGrid();
                 }
             } else {
-                const res = await axios.post(`${backendUrl}/api/batch/school-batches/add`, { school_class_id: selectedClassId, section_id: selectedSectionId, academic_year: academicYear }, getAxiosConfig());
+                const res = await axios.post(`${backendUrl}/api/batch/school-batches/add`, payload, getAxiosConfig());
                 if (res.data.success) {
                     toast.success('Batch created.');
                     resetBatchForm();
@@ -231,6 +248,7 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses, fetchSchoolC
     };
 
     const startEditBatch = (row) => {
+        setSelectedBranchId(row.branch_id || ''); // Bind branch constraint to editing scope
         setSelectedClassId(row.school_class_id || '');
         setSelectedSectionId(row.section_id || '');
         setAcademicYear(row.academic_year || '');
@@ -239,6 +257,7 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses, fetchSchoolC
     };
 
     const resetBatchForm = () => {
+        setSelectedBranchId(''); // Flush selection on reset actions
         setSelectedClassId('');
         setSelectedSectionId('');
         setAcademicYear('');
@@ -515,6 +534,21 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses, fetchSchoolC
                         {isEditingBatch ? 'Update Batch' : 'Create Batch'}
                     </h3>
                     <form onSubmit={handleBatchSubmit} className='space-y-4'>
+                        {/* Added Branch Select Control Dropdown field component element view */}
+                        <div>
+                            <label className="text-xs font-bold text-slate-500">Branch</label>
+                            <select
+                                className="w-full border p-2 mt-1.5 bg-white rounded-lg outline-none text-sm focus:border-blue-500 shadow-sm"
+                                value={selectedBranchId}
+                                onChange={e => setSelectedBranchId(e.target.value)}
+                                required
+                            >
+                                <option value="">-- Choose Branch --</option>
+                                {branches.map(b => (
+                                    <option key={b.id} value={b.id}>{b.branch_name}</option>
+                                ))}
+                            </select>
+                        </div>
                         <div>
                             <label className="text-xs font-bold text-slate-500">Class</label>
                             <select
@@ -552,8 +586,7 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses, fetchSchoolC
                                 placeholder='e.g. 2026-2027'
                                 onChange={e => setAcademicYear(e.target.value)}
                                 required
-                            >
-                            </input>
+                            />
                         </div>
                         <div className="flex gap-2 pt-1">
                             <button type="submit" className={`flex-1 text-white font-bold py-2 rounded-lg text-xs shadow transition-colors ${isEditingBatch ? 'bg-amber-600 hover:bg-amber-700' : 'bg-blue-600 hover:bg-blue-700'}`}>
@@ -580,6 +613,7 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses, fetchSchoolC
                             <thead>
                                 <tr className="bg-slate-100/50 border-b border-slate-200 text-slate-500 font-bold uppercase">
                                     <th className="py-2.5 px-5 text-center">ID</th>
+                                    <th className="py-2.5 px-4">Branch</th>{/* Added Branch Data Header */}
                                     <th className="py-2.5 px-4">Class</th>
                                     <th className="py-2.5 px-4">Section</th>
                                     <th className="py-2.5 px-4">Academic Year</th>
@@ -590,12 +624,13 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses, fetchSchoolC
                             <tbody className="divide-y divide-slate-100 text-slate-600">
                                 {displayBatchRows.length === 0 ? (
                                     <tr>
-                                        <td colSpan="6" className="text-center py-6 text-slate-400 font-medium">No batches created yet.</td>
+                                        <td colSpan="7" className="text-center py-6 text-slate-400 font-medium">No batches created yet.</td>
                                     </tr>
                                 ) : (
                                     displayBatchRows.map(row => (
                                         <tr key={row.batch_id} className="hover:bg-slate-50/50">
                                             <td className="py-2.5 px-5 text-center font-mono font-bold text-slate-400 bg-slate-50/20">{row.batch_id}</td>
+                                            <td className="py-2.5 px-4 font-semibold text-slate-700">{row.branch_name}</td>{/* Render Branch Row Data */}
                                             <td className="py-2.5 px-4 font-bold text-slate-800">{row.class_name}</td>
                                             <td className="py-2.5 px-4 font-medium text-slate-600">{row.section_name}</td>
                                             <td className="py-2.5 px-4 text-slate-600">{row.academic_year}</td>
