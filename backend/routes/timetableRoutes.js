@@ -23,7 +23,6 @@ router.delete('/schedule/:id', verifyToken, restrictTo('school_admin'), deleteTi
 router.get('/substitutions', verifyToken, restrictTo('school_admin'), getSubstitutions);
 router.post('/substitutions/add', verifyToken, restrictTo('school_admin'), createSubstitution);
 router.delete('/substitutions/:id', verifyToken, restrictTo('school_admin'), deleteSubstitution);
-
-router.get('/substitutions/active-dates', verifyToken, restrictTo('school_admin'), getActiveDates); // Added Route
+router.get('/substitutions/active-dates', verifyToken, restrictTo('school_admin'), getActiveDates);
 
 module.exports = router;
