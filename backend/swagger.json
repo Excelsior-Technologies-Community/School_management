@@ -1509,6 +1509,979 @@
           }
         }
       }
+    },
+    "/api/batch/school-batches/toggle-status/{id}": {
+      "put": {
+        "summary": "Toggle operational status of a specific school batch record",
+        "tags": [
+          "School Admin - Batches"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The unique batch ID to toggle",
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Batch status successfully inverted/updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Batch status updated to Inactive."
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "batch_id": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "school_class_id": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "section_id": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "academic_year": {
+                          "type": "string",
+                          "example": "2026-2027"
+                        },
+                        "status": {
+                          "type": "string",
+                          "example": "Inactive"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing parameter or invalid target ID syntax.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Batch ID parameter is required."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Target batch record could not be found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Target batch record not found."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Database connection error or internal server exception.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Internal database query execution timeout error."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/timetable/periods/add": {
+      "post": {
+        "summary": "Create a new school period / daily lecture slot",
+        "tags": [
+          "School Admin - Timetable Configurations"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "branch_id",
+                  "period_no",
+                  "start_time",
+                  "end_time"
+                ],
+                "properties": {
+                  "branch_id": {
+                    "type": "integer",
+                    "example": 1
+                  },
+                  "period_no": {
+                    "type": "integer",
+                    "example": 1
+                  },
+                  "start_time": {
+                    "type": "string",
+                    "example": "08:00:00",
+                    "description": "Format: HH:MM:SS"
+                  },
+                  "end_time": {
+                    "type": "string",
+                    "example": "08:45:00",
+                    "description": "Format: HH:MM:SS"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "Active",
+                      "Inactive"
+                    ],
+                    "default": "Active",
+                    "example": "Active"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "School period initialized successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "School period created."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal database or server exception.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Error description details go here."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/timetable/periods": {
+      "get": {
+        "summary": "Get all school periods configured for a specific branch",
+        "tags": [
+          "School Admin - Timetable Configurations"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "branch_id",
+            "in": "query",
+            "required": true,
+            "description": "Filter operational period blocks by target school branch ID",
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Collection of configured branch slot frames returned successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "period_id": {
+                            "type": "integer",
+                            "example": 1
+                          },
+                          "school_id": {
+                            "type": "integer",
+                            "example": 1
+                          },
+                          "branch_id": {
+                            "type": "integer",
+                            "example": 1
+                          },
+                          "period_no": {
+                            "type": "integer",
+                            "example": 1
+                          },
+                          "start_time": {
+                            "type": "string",
+                            "example": "08:00:00"
+                          },
+                          "end_time": {
+                            "type": "string",
+                            "example": "08:45:00"
+                          },
+                          "slot_duration": {
+                            "type": "integer",
+                            "example": 45
+                          },
+                          "status": {
+                            "type": "string",
+                            "example": "Active"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing query filter parameter validation values.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "branch_id query param required."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/timetable/periods/{id}": {
+      "put": {
+        "summary": "Update an existing branch school period frame configuration block",
+        "tags": [
+          "School Admin - Timetable Configurations"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Primary identity row integer index key to alter",
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "period_no": {
+                    "type": "integer",
+                    "example": 1
+                  },
+                  "start_time": {
+                    "type": "string",
+                    "example": "08:00:00"
+                  },
+                  "end_time": {
+                    "type": "string",
+                    "example": "08:50:00"
+                  },
+                  "status": {
+                    "type": "string",
+                    "example": "Active"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Period structural configurations modified successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Period updated successfully."
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "period_id": {
+                          "type": "string",
+                          "example": "1"
+                        },
+                        "period_no": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "start_time": {
+                          "type": "string",
+                          "example": "08:00:00"
+                        },
+                        "end_time": {
+                          "type": "string",
+                          "example": "08:50:00"
+                        },
+                        "status": {
+                          "type": "string",
+                          "example": "Active"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Target indexing block not found tracking errors.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Period not found."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Drop a school period permanently from master records",
+        "tags": [
+          "School Admin - Timetable Configurations"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The unique period ID to delete",
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Period row configuration purged cleanly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Period dropped from configurations."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/timetable/periods/toggle-status/{id}": {
+      "put": {
+        "summary": "Invert operational validity status flags on a period block",
+        "tags": [
+          "School Admin - Timetable Configurations"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Target tracking configuration code index",
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operational visibility state status toggled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Period availability changed."
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "period_id": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "status": {
+                          "type": "string",
+                          "example": "Inactive"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/academic/subjects/add": {
+      "post": {
+        "summary": "Create/Add a new school subject",
+        "tags": [
+          "School Admin - Subjects"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "subject_name"
+                ],
+                "properties": {
+                  "subject_name": {
+                    "type": "string",
+                    "example": "Advanced Mathematics"
+                  },
+                  "subject_code": {
+                    "type": "string",
+                    "example": "MATH102"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "Active",
+                      "Inactive"
+                    ],
+                    "default": "Active",
+                    "example": "Active"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Subject created successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Subject created successfully."
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "example": 105
+                        },
+                        "school_id": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "subject_name": {
+                          "type": "string",
+                          "example": "Advanced Mathematics"
+                        },
+                        "subject_code": {
+                          "type": "string",
+                          "example": "MATH102"
+                        },
+                        "status": {
+                          "type": "string",
+                          "example": "Active"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing validation requirements.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Branch name is required."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server execution error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Internal database exception error."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/academic/subjects": {
+      "get": {
+        "summary": "Retrieve all school subjects for the authenticated user's institution",
+        "tags": [
+          "School Admin - Subjects"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of school subjects fetched successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "example": 105
+                          },
+                          "school_id": {
+                            "type": "integer",
+                            "example": 1
+                          },
+                          "subject_name": {
+                            "type": "string",
+                            "example": "Advanced Mathematics"
+                          },
+                          "subject_code": {
+                            "type": "string",
+                            "example": "MATH102"
+                          },
+                          "status": {
+                            "type": "string",
+                            "example": "Active"
+                          },
+                          "created_at": {
+                            "type": "string",
+                            "format": "date-time",
+                            "example": "2026-06-05T13:00:00.000Z"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/academic/subjects/{id}": {
+      "put": {
+        "summary": "Update metadata properties of an existing subject configuration",
+        "tags": [
+          "School Admin - Subjects"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The unique subject table primary identifier key",
+            "schema": {
+              "type": "integer",
+              "example": 105
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "subject_name": {
+                    "type": "string",
+                    "example": "Advanced Corporate Mathematics"
+                  },
+                  "subject_code": {
+                    "type": "string",
+                    "example": "MATH102-M"
+                  },
+                  "status": {
+                    "type": "string",
+                    "example": "Active"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Subject properties edited cleanly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Subject updated successfully."
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "example": "105"
+                        },
+                        "subject_name": {
+                          "type": "string",
+                          "example": "Advanced Corporate Mathematics"
+                        },
+                        "subject_code": {
+                          "type": "string",
+                          "example": "MATH102-M"
+                        },
+                        "status": {
+                          "type": "string",
+                          "example": "Active"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Target reference identification index layout not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Subject not found."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Drop a specific school subject record index entirely",
+        "tags": [
+          "School Admin - Subjects"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Target structural unique identifier to drop",
+            "schema": {
+              "type": "integer",
+              "example": 105
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Subject dropped successfully from configurations.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Subject dropped successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/academic/subjects/toggle-status/{id}": {
+      "put": {
+        "summary": "Toggle active state status visibility on a target subject",
+        "tags": [
+          "School Admin - Subjects"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The unique subject ID index key to flip status for",
+            "schema": {
+              "type": "integer",
+              "example": 105
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Subject operational availability altered.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Subject status toggled successfully."
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "example": 105
+                        },
+                        "status": {
+                          "type": "string",
+                          "example": "Inactive"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

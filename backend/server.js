@@ -11,6 +11,8 @@ const authRoutes = require('./routes/authRoutes')
 const superAdminRoutes = require('./routes/superAdminRoutes')
 const schoolAdminRoutes = require('./routes/schoolAdminRoutes')
 const BatchRoutes = require('./routes/batchRoutes')
+const academicRoutes = require('./routes/academicRoutes')
+const timetableRoutes = require('./routes/timetableRoutes')
 
 const app = express();
 
@@ -25,6 +27,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/super', superAdminRoutes)
 app.use('/api/school', schoolAdminRoutes)
 app.use('/api/batch', BatchRoutes)
+app.use('/api/academic', academicRoutes)
+app.use('/api/timetable', timetableRoutes)
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
