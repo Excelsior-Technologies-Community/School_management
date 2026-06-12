@@ -180,8 +180,22 @@ const deleteSubstitution = async (req, res) => {
     }
 };
 
+// Adjusted parameter key checking structure to remain uniform
+const getActiveDates = async (req, res) => {
+    try {
+        const { branch_id } = req.query; 
+        if (!branch_id) return res.status(400).json({ success: false, message: 'branch_id query parameter required.' });
+        
+        const dates = await SubstitutionModel.getActiveDates(branch_id);
+        return res.status(200).json({ success: true, dates });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = {
     getPeriods, createPeriod, updatePeriod, togglePeriodStatus, deletePeriod,
     getTimeTableByBatch, createTimeTableEntry, updateTimeTableEntry, deleteTimeTableEntry,
-    getSubstitutions, createSubstitution, deleteSubstitution
+    getSubstitutions, createSubstitution, deleteSubstitution,
+    getActiveDates
 };

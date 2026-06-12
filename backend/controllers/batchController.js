@@ -117,17 +117,17 @@ const removeSection = async (req, res) => {
 
 
 
-const addBranch = async (req, res) => {
+const addBatch = async (req, res) => {
     try {
-        const { school_class_id, section_id, academic_year } = req.body;
+        const { branch_id, school_class_id, section_id, academic_year } = req.body;
         const school_id = req.user?.school_id;
 
-        if (!school_class_id || !section_id || !academic_year) {
-            return res.status(400).json({ success: false, message: 'Missing field values.' })
+        if (!branch_id || !school_class_id || !section_id || !academic_year) {
+            return res.status(400).json({ success: false, message: 'Missing field values.' });
         }
 
-        const data = await BatchModel.createBatch(school_id, school_class_id, section_id, academic_year);
-        return res.status(201).json({ success: true, message: data.message, batch_id: data.batch_id })
+        const data = await BatchModel.createBatch(school_id, branch_id, school_class_id, section_id, academic_year);
+        return res.status(201).json({ success: true, message: data.message, batch_id: data.batch_id });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
     }
@@ -147,11 +147,15 @@ const listSchoolBatches = async (req, res) => {
 const updateSchoolBatch = async (req, res) => {
     try {
         const { id } = req.params;
-        const { school_class_id, section_id, academic_year } = req.body;
+        const { branch_id, school_class_id, section_id, academic_year } = req.body;
         const school_id = req.user?.school_id;
 
-        const data = await BatchModel.updateBatch(id, school_id, school_class_id, section_id, academic_year);
-        return res.status(200).json({ success: true, message: data.message })
+        if (!branch_id || !school_class_id || !section_id || !academic_year) {
+            return res.status(400).json({ success: false, message: 'Missing field values for updates.' });
+        }
+
+        const data = await BatchModel.updateBatch(id, school_id, branch_id, school_class_id, section_id, academic_year);
+        return res.status(200).json({ success: true, message: data.message });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
     }
@@ -200,6 +204,6 @@ module.exports = {
     CreateGlobalClass, getGlobalClasses,
     createSchoolClass, listSchoolClassses, deleteSchoolClass,
     addSection, updateSchoolSection, removeSection, listSchoolSections,
-    addBranch, listSchoolBatches, updateSchoolBatch, removeBatch,
+    addBatch, listSchoolBatches, updateSchoolBatch, removeBatch,
     toggleBatchStatus
 };

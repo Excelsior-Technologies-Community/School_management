@@ -94,6 +94,21 @@ const SubstitutionModel = {
         return rows;
     },
 
+    // NEW: Dynamic retrieval of distinct active dates with substitutions filtered by branch
+    // NEW: Dynamic retrieval of distinct active dates with substitutions filtered by branch
+    getActiveDates: async (branchId) => {
+        const query = `
+        SELECT DISTINCT DATE_FORMAT(tts.substitution_date, '%Y-%m-%d') AS substitution_date
+        FROM time_table_substitutions tts
+        INNER JOIN time_table tt ON tts.time_table_id = tt.time_table_id
+        INNER JOIN batches b ON tt.batch_id = b.batch_id
+        WHERE tts.status = 'Active' AND b.branch_id = ?
+        ORDER BY substitution_date DESC
+    `;
+        const [rows] = await db.query(query, [branchId]);
+        return rows.map(row => row.substitution_date);
+    },
+    
     create: async (userId, data) => {
         const [result] = await db.query(
             'CALL sp_ManageSubstitution("CREATE", NULL, ?, ?, ?, ?, ?, ?, ?, ?)',

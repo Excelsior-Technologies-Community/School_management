@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { getPeriods, createPeriod, updatePeriod, togglePeriodStatus, deletePeriod,
     getTimeTableByBatch, createTimeTableEntry, updateTimeTableEntry, deleteTimeTableEntry,
-    getSubstitutions, createSubstitution, deleteSubstitution
+    getSubstitutions, createSubstitution, deleteSubstitution,getActiveDates
 } = require('../controllers/timetableController')
 const { verifyToken, restrictTo } = require('../middleware/authMiddleware')
 
@@ -23,5 +23,7 @@ router.delete('/schedule/:id', verifyToken, restrictTo('school_admin'), deleteTi
 router.get('/substitutions', verifyToken, restrictTo('school_admin'), getSubstitutions);
 router.post('/substitutions/add', verifyToken, restrictTo('school_admin'), createSubstitution);
 router.delete('/substitutions/:id', verifyToken, restrictTo('school_admin'), deleteSubstitution);
+
+router.get('/substitutions/active-dates', verifyToken, restrictTo('school_admin'), getActiveDates); // Added Route
 
 module.exports = router;

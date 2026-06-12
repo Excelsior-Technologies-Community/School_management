@@ -3,7 +3,7 @@ const router = express.Router();
 const { CreateGlobalClass, getGlobalClasses,
     createSchoolClass, listSchoolClassses, deleteSchoolClass,
     addSection, updateSchoolSection, removeSection, listSchoolSections,
-    addBranch, listSchoolBatches, updateSchoolBatch, removeBatch,
+    addBatch, listSchoolBatches, updateSchoolBatch, removeBatch,
     toggleBatchStatus } = require('../controllers/batchController')
 const { verifyToken, restrictTo } = require('../middleware/authMiddleware')
 
@@ -23,7 +23,7 @@ router.put('/school-sections/:id', verifyToken, restrictTo('school_admin'), upda
 router.delete('/school-sections/:id', verifyToken, restrictTo('school_admin'), removeSection)
 
 // school admin batch routes
-router.post('/school-batches/add', verifyToken, restrictTo('school_admin'), addBranch)
+router.post('/school-batches/add', verifyToken, restrictTo('school_admin'), addBatch)
 router.get('/school-batches', verifyToken, restrictTo('school_admin'), listSchoolBatches)
 router.put('/school-batches/:id', verifyToken, restrictTo('school_admin'), updateSchoolBatch)
 router.delete('/school-batches/:id', verifyToken, restrictTo('school_admin'), removeBatch)

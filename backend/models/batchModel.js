@@ -50,8 +50,8 @@ const BatchModel = {
     },
 
     // SCHOOL ADMIN BATCHES
-    createBatch: async (schoolId, schoolClassId, sectionId, academicYear) => {
-        const [result] = await db.query('CALL sp_CreateBatch(?,?,?,?)', [schoolId, schoolClassId, sectionId, academicYear]);
+    createBatch: async (schoolId, branchId, schoolClassId, sectionId, academicYear) => {
+        const [result] = await db.query('CALL sp_CreateBatch(?,?,?,?,?)', [schoolId, branchId, schoolClassId, sectionId, academicYear]);
         return result[0][0];
     },
 
@@ -60,8 +60,8 @@ const BatchModel = {
         return result[0];
     },
 
-    updateBatch: async (batchId, schoolId, schoolClassId, sectionId, academicYear) => {
-        const [result] = await db.query('CALL sp_UpdateBatch(?,?,?,?,?)', [batchId, schoolId, schoolClassId, sectionId, academicYear]);
+    updateBatch: async (batchId, schoolId, branchId, schoolClassId, sectionId, academicYear) => {
+        const [result] = await db.query('CALL sp_UpdateBatch(?,?,?,?,?,?)', [batchId, schoolId, branchId, schoolClassId, sectionId, academicYear]);
         return result[0][0];
     },
 
