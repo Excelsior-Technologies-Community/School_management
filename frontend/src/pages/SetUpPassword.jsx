@@ -35,16 +35,18 @@ const SetupPassword = () => {
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
         <div className="text-center mb-6">
-          <div className="bg-emerald-100 text-emerald-600 p-3 rounded-full inline-block mb-2">
+          <div className="bg-blue-100 text-blue-600 p-3 rounded-full inline-block mb-2">
             <KeyRound size={26} />
           </div>
-          <h2 className="text-xl font-bold text-slate-800">Secure Admin Activation</h2>
+          {/* Changed header text to be universally inviting to both Admins and Subject Teachers */}
+          <h2 className="text-xl font-bold text-slate-800">Campus Workspace Activation</h2>
           <p className="text-slate-500 text-sm mt-1">Initialize your private account password credentials</p>
         </div>
 
         {status.msg && (
-          <div className={`p-3 rounded mb-4 text-sm flex items-center gap-2 ${status.type === 'success' ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'
-            }`}>
+          <div className={`p-3 rounded mb-4 text-sm flex items-center gap-2 ${
+            status.type === 'success' ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'
+          }`}>
             {status.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
             <span>{status.msg}</span>
           </div>
@@ -57,7 +59,7 @@ const SetupPassword = () => {
               type="password"
               required
               minLength={6}
-              className="w-full border p-2.5 rounded-lg bg-slate-50 outline-none focus:border-emerald-500 text-slate-800"
+              className="w-full border p-2.5 rounded-lg bg-slate-50 outline-none focus:border-blue-500 text-slate-800"
               placeholder="Minimum 6 characters"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -68,13 +70,13 @@ const SetupPassword = () => {
             <input
               type="password"
               required
-              className="w-full border p-2.5 rounded-lg bg-slate-50 outline-none focus:border-emerald-500 text-slate-800"
+              className="w-full border p-2.5 rounded-lg bg-slate-50 outline-none focus:border-blue-500 text-slate-800"
               placeholder="Repeat password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
             />
           </div>
-          <button type="submit" className="w-full bg-slate-800 text-white py-2.5 rounded-lg font-medium hover:bg-slate-950 transition-colors">
+          <button type="submit" className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-md">
             Finalize Access Setup
           </button>
         </form>
@@ -83,4 +85,4 @@ const SetupPassword = () => {
   );
 };
 
-export default SetupPassword
+export default SetupPassword;
