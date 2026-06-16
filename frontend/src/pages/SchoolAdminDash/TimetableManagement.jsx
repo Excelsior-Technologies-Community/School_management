@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { backendUrl } from '../../App';
 import { toast } from 'react-toastify';
-import { Clock, Calendar, UserCheck, Plus, Trash2, Edit3, RefreshCw, ChevronRight, ChevronLeft, XCircle, ToggleLeft, ToggleRight, AlertCircle } from 'lucide-react';
+import { Clock, Calendar, UserCheck, Plus, Trash2, Edit3, RefreshCw, ChevronRight, ChevronLeft, XCircle, ToggleLeft, ToggleRight, AlertCircle, DoorOpen } from 'lucide-react';
 
 const TimetableManagement = ({ schoolId, userContext }) => {
   const [activeTab, setActiveTab] = useState('periods');
@@ -130,6 +130,7 @@ const TimetableManagement = ({ schoolId, userContext }) => {
   const fetchSubjects = async () => {
     try {
       const res = await axios.get(`${backendUrl}/api/academic/subjects`, getAxiosConfig());
+
       if (res.data.success) setSubjects(res.data.data);
     } catch (error) {
       toast.error('Failed to load subjects.');
@@ -271,7 +272,7 @@ const TimetableManagement = ({ schoolId, userContext }) => {
         fetchActiveSubstitutionDates();
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Substitution failed.'); 
+      toast.error(error.response?.data?.message || 'Substitution failed.');
     }
   };
 
@@ -292,6 +293,14 @@ const TimetableManagement = ({ schoolId, userContext }) => {
   useEffect(() => {
     setTimetableForm(prev => ({ ...prev, batch_id: selectedBatchId }));
   }, [selectedBatchId]);
+
+  const [currentTimetablePage, setCurrentTimetablePage] = useState(1);
+  const timetableRowsPerPage = 8;
+
+  const indexOfLastTimetableRow = currentTimetablePage * timetableRowsPerPage;
+  const indexOfFirstTimetableRow = indexOfLastTimetableRow - timetableRowsPerPage;
+  const displayTimetableRows = timetable.slice(indexOfFirstTimetableRow, indexOfLastTimetableRow);
+  const totalTimetablePages = Math.ceil(timetable.length / timetableRowsPerPage);
 
   return (
     <div className='bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-150'>
@@ -466,173 +475,278 @@ const TimetableManagement = ({ schoolId, userContext }) => {
         )}
 
         {/* TIMETABLE TAB */}
-        {activeTab === 'timetable' && (
-          <div className='space-y-6'>
-            <div className='flex flex-wrap gap-4 items-center justify-between bg-slate-50 p-4 rounded-xl border border-slate-200'>
-              <div className='flex items-center gap-3'>
-                <label className='text-xs font-bold text-slate-600'>Target Batch:</label>
-                <select
-                  className='text-xs border rounded px-3 py-1.5 bg-white outline-none focus:border-blue-500'
-                  value={selectedBatchId}
-                  onChange={e => { setSelectedBatchId(e.target.value); setTimetable([]); }}
-                >
-                  <option value="">-- Select Batch --</option>
-                  {batches
-                    .filter(b => String(b.branch_id) === String(selectedBranchId))
-                    .map(b => (
-                      <option key={b.batch_id} value={b.batch_id}>
-                        {b.class_name} - {b.section_name} ({b.academic_year})
-                      </option>
-                    ))
-                  }
-                </select>
-              </div>
-              <button onClick={fetchTimetable} className='p-1.5 border bg-white rounded text-slate-400 hover:text-blue-600 transition-colors'>
-                <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-              </button>
-            </div>
+        {activeTab === 'timetable' && (() => {
+          const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-            {!selectedBatchId ? (
-              <div className='text-center py-20 text-slate-400 font-medium border-2 border-dashed border-slate-200 rounded-2xl'>
-                Please select a batch to manage its timetable.
+          const uniquePeriodNumbers = [...new Set(periods.map(p => Number(p.period_no)))].sort((a, b) => a - b);
+
+          const timetableGrid = {};
+          uniquePeriodNumbers.forEach(pNo => {
+            timetableGrid[pNo] = {};
+            daysOfWeek.forEach(day => {
+              const match = timetable.find(
+                slot => Number(slot.period_no) === pNo &&
+                  String(slot.day_of_week).trim().toLowerCase() === day.toLowerCase()
+              );
+              timetableGrid[pNo][day] = match || null;
+            });
+          });
+
+          return (
+            <div className='space-y-6'>
+              <div className='flex flex-wrap gap-4 items-center justify-between bg-slate-50 p-4 rounded-xl border border-slate-200'>
+                <div className='flex items-center gap-3'>
+                  <label className='text-xs font-bold text-slate-600'>Target Batch:</label>
+                  <select
+                    className='text-xs border rounded px-3 py-1.5 bg-white outline-none focus:border-blue-500'
+                    value={selectedBatchId}
+                    onChange={e => { setSelectedBatchId(e.target.value); setTimetable([]); setCurrentTimetablePage(1); }}
+                  >
+                    <option value="">-- Select Batch --</option>
+                    {batches
+                      .filter(b => String(b.branch_id) === String(selectedBranchId))
+                      .map(b => (
+                        <option key={b.batch_id} value={b.batch_id}>
+                          {b.class_name} - {b.section_name} ({b.academic_year})
+                        </option>
+                      ))
+                    }
+                  </select>
+                </div>
+                <button onClick={fetchTimetable} className='p-1.5 border bg-white rounded text-slate-400 hover:text-blue-600 transition-colors'>
+                  <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                </button>
               </div>
-            ) : (
-              <div className='grid grid-cols-1 lg:grid-cols-3 gap-8'>
-                <div className='lg:col-span-1 bg-slate-50 p-5 rounded-xl border border-slate-200 h-fit'>
-                  <h3 className='text-sm font-bold text-slate-800 mb-4 flex items-center gap-2'>
-                    <Plus size={16} className='text-blue-600' />
-                    {editingTimetableId ? 'Update Slot Parameters' : 'Assign Timetable Slot'}
-                  </h3>
-                  <form onSubmit={handleTimetableSubmit} className='space-y-4'>
-                    <div>
-                      <label className='block text-xs font-bold text-slate-600 mb-1'>Period</label>
-                      <select
-                        className='w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white'
-                        value={timetableForm.period_id}
-                        onChange={e => setTimetableForm({ ...timetableForm, period_id: e.target.value })}
-                        required
-                      >
-                        <option value="">-- Select Period --</option>
-                        {periods.map(p => <option key={p.period_id} value={p.period_id}>Period {p.period_no} ({p.start_time}-{p.end_time})</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className='block text-xs font-bold text-slate-600 mb-1'>Subject</label>
-                      <select
-                        className='w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white'
-                        value={timetableForm.school_subject_id}
-                        onChange={e => setTimetableForm({ ...timetableForm, school_subject_id: e.target.value })}
-                        required
-                      >
-                        <option value="">-- Select Subject --</option>
-                        {subjects.map(s => <option key={s.id} value={s.id}>{s.subject_name}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className='block text-xs font-bold text-slate-600 mb-1'>Teacher</label>
-                      <select
-                        className='w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white'
-                        value={timetableForm.teacher_id}
-                        onChange={e => setTimetableForm({ ...timetableForm, teacher_id: e.target.value })}
-                        required
-                      >
-                        <option value="">-- Select Teacher --</option>
-                        {teachers.map(t => <option key={t.staff_id} value={t.staff_id}>{t.name}</option>)}
-                      </select>
-                    </div>
-                    <div className='grid grid-cols-2 gap-4'>
+
+              {!selectedBatchId ? (
+                <div className='text-center py-20 text-slate-400 font-medium border-2 border-dashed border-slate-200 rounded-2xl'>
+                  Please select a batch to manage its timetable.
+                </div>
+              ) : (
+                <div className='grid grid-cols-1 xl:grid-cols-4 gap-8'>
+
+                  {/* Left Column */}
+                  <div className='xl:col-span-1 bg-slate-50 p-5 rounded-xl border border-slate-200 h-fit'>
+                    <h3 className='text-sm font-bold text-slate-800 mb-4 flex items-center gap-2'>
+                      <Plus size={16} className='text-blue-600' />
+                      {editingTimetableId ? 'Update Slot Parameters' : 'Assign Timetable Slot'}
+                    </h3>
+                    <form onSubmit={handleTimetableSubmit} className='space-y-4'>
                       <div>
-                        <label className='block text-xs font-bold text-slate-600 mb-1'>Day of Week</label>
+                        <label className='block text-xs font-bold text-slate-600 mb-1'>Period</label>
                         <select
                           className='w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white'
-                          value={timetableForm.day_of_week}
-                          onChange={e => setTimetableForm({ ...timetableForm, day_of_week: e.target.value })}
+                          value={timetableForm.period_id}
+                          onChange={e => setTimetableForm({ ...timetableForm, period_id: e.target.value })}
                           required
                         >
-                          <option value="">-- Select Day --</option>
-                          {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
-                            <option key={day} value={day}>{day}</option>
-                          ))}
+                          <option value="">-- Select Period --</option>
+                          {periods.map(p => <option key={p.period_id} value={p.period_id}>Period {p.period_no} ({p.start_time}-{p.end_time})</option>)}
                         </select>
                       </div>
                       <div>
-                        <label className='block text-xs font-bold text-slate-600 mb-1'>Room No</label>
-                        <input
-                          type="text"
+                        <label className='block text-xs font-bold text-slate-600 mb-1'>Subject</label>
+                        <select
                           className='w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white'
-                          placeholder="e.g. 101"
-                          value={timetableForm.room_no}
-                          onChange={e => setTimetableForm({ ...timetableForm, room_no: e.target.value })}
-                        />
-                      </div>
-                    </div>
-                    <div className='flex justify-end gap-2 pt-2'>
-                      {editingTimetableId && (
-                        <button
-                          type="button"
-                          onClick={() => { setEditingTimetableId(null); setTimetableForm({ batch_id: selectedBatchId, period_id: '', school_subject_id: '', teacher_id: '', day_of_week: '', room_no: '', status: 'Active' }); }}
-                          className='px-3 py-1.5 text-xs font-bold bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300'
+                          value={timetableForm.school_subject_id}
+                          onChange={e => setTimetableForm({ ...timetableForm, school_subject_id: e.target.value })}
+                          required
                         >
-                          Cancel
+                          <option value="">-- Select Subject --</option>
+                          {subjects
+                            .filter(s => s.status === 'active')
+                            .map(s => (
+                              <option key={s.school_subject_id} value={s.school_subject_id}>
+                                {s.display_name}
+                              </option>
+                            ))
+                          }
+                        </select>
+                      </div>
+                      <div>
+                        <label className='block text-xs font-bold text-slate-600 mb-1'>Teacher</label>
+                        <select
+                          className='w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white'
+                          value={timetableForm.teacher_id}
+                          onChange={e => setTimetableForm({ ...timetableForm, teacher_id: e.target.value })}
+                          required
+                        >
+                          <option value="">-- Select Teacher --</option>
+                          {teachers.map(t => <option key={t.staff_id} value={t.staff_id}>{t.name}</option>)}
+                        </select>
+                      </div>
+                      <div className='grid grid-cols-2 gap-4'>
+                        <div>
+                          <label className='block text-xs font-bold text-slate-600 mb-1'>Day of Week</label>
+                          <select
+                            className='w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white'
+                            value={timetableForm.day_of_week}
+                            onChange={e => setTimetableForm({ ...timetableForm, day_of_week: e.target.value })}
+                            required
+                          >
+                            <option value="">-- Select Day --</option>
+                            {daysOfWeek.map(day => (
+                              <option key={day} value={day}>{day}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className='block text-xs font-bold text-slate-600 mb-1'>Room No</label>
+                          <input
+                            type="text"
+                            className='w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white'
+                            placeholder="e.g. 101"
+                            value={timetableForm.room_no}
+                            onChange={e => setTimetableForm({ ...timetableForm, room_no: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                      <div className='flex justify-end gap-2 pt-2'>
+                        {editingTimetableId && (
+                          <button
+                            type="button"
+                            onClick={() => { setEditingTimetableId(null); setTimetableForm({ batch_id: selectedBatchId, period_id: '', school_subject_id: '', teacher_id: '', day_of_week: '', room_no: '', status: 'Active' }); }}
+                            className='px-3 py-1.5 text-xs font-bold bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300'
+                          >
+                            Cancel
+                          </button>
+                        )}
+                        <button type="submit" className='px-4 py-1.5 text-xs font-bold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'>
+                          {editingTimetableId ? 'Update Slot' : 'Assign Slot'}
                         </button>
-                      )}
-                      <button type="submit" className='px-4 py-1.5 text-xs font-bold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'>
-                        {editingTimetableId ? 'Update Slot' : 'Assign Slot'}
-                      </button>
-                    </div>
-                  </form>
-                </div>
+                      </div>
+                    </form>
+                  </div>
 
-                <div className='lg:col-span-2 overflow-x-auto border border-slate-200 rounded-xl'>
-                  <table className='w-full text-left text-xs border-collapse'>
-                    <thead>
-                      <tr className='bg-slate-50 text-slate-500 font-bold uppercase border-b border-slate-200'>
-                        <th className='py-3 px-4'>Day / Period</th>
-                        <th className='py-3 px-4'>Subject</th>
-                        <th className='py-3 px-4'>Teacher</th>
-                        <th className='py-3 px-4'>Room</th>
-                        <th className='py-3 px-4 text-right'>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className='divide-y divide-slate-100'>
-                      {timetable.length === 0 ? (
-                        <tr><td colSpan={5} className='py-8 text-center text-slate-400'>No schedule defined for this batch.</td></tr>
-                      ) : (
-                        timetable.map(slot => (
-                          <tr key={slot.time_table_id} className='hover:bg-slate-50/50'>
-                            <td className='py-3 px-4'>
-                              <div className='font-bold text-slate-800'>{slot.day_of_week}</div>
-                              <div className='text-[10px] text-slate-500 font-mono'>Period {slot.period_no || 'N/A'}</div>
-                            </td>
-                            <td className='py-3 px-4 text-slate-600 font-medium'>{slot.subject_name || 'N/A'}</td>
-                            <td className='py-3 px-4 text-slate-600'>{slot.teacher_name || 'N/A'}</td>
-                            <td className='py-3 px-4 text-slate-600'>{slot.room_no || '—'}</td>
-                            <td className='py-3 px-4 text-right'>
-                              <div className='flex justify-end gap-1'>
-                                <button onClick={() => { setEditingTimetableId(slot.time_table_id); setTimetableForm({ ...slot, batch_id: selectedBatchId }); }} className='p-1 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded" title="Edit Slot'>
-                                  <Edit3 size={14} />
-                                </button>
-                                <button onClick={() => deleteTimetableEntry(slot.time_table_id)} className='p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded" title="Delete Slot'>
-                                  <Trash2 size={14} />
-                                </button>
-                              </div>
-                            </td>
+                  {/* Right Column */}
+                  <div className='xl:col-span-3 border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm flex flex-col justify-between'>
+                    <div className='overflow-x-auto min-w-full align-middle'>
+                      <table className='w-full text-left text-xs border-collapse table-fixed min-w-200'>
+                        <thead>
+                          <tr className='bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase text-[11px]'>
+                            <th className='py-3.5 px-4 bg-slate-100 border-r border-slate-200 w-28 text-center sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]'>
+                              Period / Day
+                            </th>
+                            {daysOfWeek.map(day => (
+                              <th key={day} className='py-3.5 px-3 text-center border-r border-slate-200 last:border-r-0'>
+                                {day}
+                              </th>
+                            ))}
                           </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+                        </thead>
+                        <tbody className='divide-y divide-slate-200'>
+                          {uniquePeriodNumbers.length === 0 ? (
+                            <tr>
+                              <td colSpan={7} className='py-12 text-center text-slate-400 font-medium bg-slate-50/50'>
+                                No structural system period templates configurations declared.
+                              </td>
+                            </tr>
+                          ) : (
+                            uniquePeriodNumbers.map(pNo => {
+                              const currentPeriodConfig = periods.find(p => Number(p.period_no) === pNo);
+                              const timeLabel = currentPeriodConfig ? `${currentPeriodConfig.start_time} - ${currentPeriodConfig.end_time}` : '';
 
+                              return (
+                                <tr key={pNo} className='hover:bg-slate-50/30 transition-colors group'>
+                                  <td className='py-4 px-3 text-center font-bold bg-slate-50 border-r border-slate-200 sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] group-hover:bg-slate-100/80 transition-colors'>
+                                    <div className='text-slate-800 text-xs font-black'>P{pNo}</div>
+                                    {timeLabel && <div className='text-[10px] font-mono text-slate-500 font-medium mt-0.5 whitespace-nowrap'>{timeLabel}</div>}
+                                  </td>
+
+                                  {daysOfWeek.map(day => {
+                                    const slot = timetableGrid[pNo][day];
+                                    if (!slot) {
+                                      return (
+                                        <td key={day} className='py-3 px-2 border-r border-slate-200 last:border-r-0 text-center vertical-middle align-middle'>
+                                          <span className='text-[11px] italic font-medium text-slate-300 select-none'>— Empty —</span>
+                                        </td>
+                                      );
+                                    }
+
+                                    return (
+                                      <td
+                                        key={day}
+                                        className='p-2 border-r border-slate-200 last:border-r-0 transition-all relative group/cell'
+                                        style={{
+                                          backgroundColor: `${slot.color_code || '#3b82f6'}05`
+                                        }}
+                                      >
+                                        <div className='flex flex-col h-full min-h-17.5 justify-between text-center rounded-lg p-2 border'
+                                          style={{
+                                            borderColor: `${slot.color_code || '#3b82f6'}25`,
+                                            backgroundColor: `${slot.color_code || '#3b82f6'}10`
+                                          }}>
+
+                                          <div
+                                            className='text-[11px] font-bold truncate rounded px-1.5 py-0.5 border text-center shadow-sm mb-1 bg-white'
+                                            style={{
+                                              color: slot.color_code || '#1e293b',
+                                              borderColor: `${slot.color_code || '#3b82f6'}30`
+                                            }}
+                                            title={slot.subject_name}
+                                          >
+                                            {slot.subject_name}
+                                          </div>
+
+                                          <div className='text-[10px] text-slate-600 font-medium truncate flex items-center justify-center gap-1' title={slot.teacher_name}>
+                                            <UserCheck size={11} className='text-slate-400 shrink-0' />
+                                            <span className='truncate'>{slot.teacher_name || 'N/A'}</span>
+                                          </div>
+
+                                          <div className='text-[10px] text-slate-500 font-mono font-semibold mt-0.5 flex items-center justify-center gap-1'>
+                                            <DoorOpen size={11} className='text-slate-400 shrink-0' />
+                                            <span>Rm: {slot.room_no || '—'}</span>
+                                          </div>
+
+                                          <div className='absolute top-1 right-1 opacity-0 group-hover/cell:opacity-100 flex items-center bg-white/95 border border-slate-200 shadow-sm rounded-md p-0.5 transition-opacity z-20 gap-0.5'>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setEditingTimetableId(slot.time_table_id);
+                                                setTimetableForm({ ...slot, batch_id: selectedBatchId });
+                                              }}
+                                              className='p-1 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded transition-colors'
+                                              title="Edit Slot Parameters"
+                                            >
+                                              <Edit3 size={11} />
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => deleteTimetableEntry(slot.time_table_id)}
+                                              className='p-1 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors'
+                                              title="Delete Slot Entry"
+                                            >
+                                              <Trash2 size={11} />
+                                            </button>
+                                          </div>
+                                        </div>
+                                      </td>
+                                    );
+                                  })}
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className='px-4 py-2.5 bg-slate-50 border-t border-slate-200 text-[10px] text-slate-400 font-medium flex items-center justify-between'>
+                      <span> Hover over an assigned lesson card workspace box to trigger action accessors (Edit/Delete).</span>
+                      <span className='font-mono text-slate-500'>Total Slots Map: {timetable.length} entries assigned</span>
+                    </div>
+                  </div>
+
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* SUBSTITUTIONS TAB */}
         {activeTab === 'substitutions' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Column: Form & Calendar Widget */}
+            {/* Left Column */}
             <div className="lg:col-span-1 space-y-6">
               <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
                 <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
@@ -710,7 +824,7 @@ const TimetableManagement = ({ schoolId, userContext }) => {
                 </form>
               </div>
 
-              {/* Active Substitution Dates Widget (Moved cleanly out of table elements) */}
+              {/* Active Substitution Dates */}
               <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
                 <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-2">
                   <Calendar size={14} className="text-indigo-500" />
@@ -745,7 +859,7 @@ const TimetableManagement = ({ schoolId, userContext }) => {
               </div>
             </div>
 
-            {/* Right Column: Dynamic Log Entries Data Grid */}
+            {/* Right Column */}
             <div className="lg:col-span-2">
               <div className="mb-4 flex flex-wrap gap-4 items-center justify-between">
                 <div className="flex items-center gap-3">
