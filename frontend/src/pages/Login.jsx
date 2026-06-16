@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LogIn, Mail, Lock, ShieldAlert } from 'lucide-react';
-import axios from 'axios'; 
+import axios from 'axios';
 import { backendUrl } from '../App';
 import { toast } from 'react-toastify';
 
@@ -16,7 +16,7 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
-    
+
     try {
       const response = await axios.post(backendUrl + '/api/auth/login', {
         email,
@@ -27,12 +27,18 @@ const Login = () => {
 
       loginState(data.token, data.user);
 
-      if (data.user.role === 'super_admin') {
+      if(data.user.role === 'super_admin') {
         navigate('/super-dashboard');
-        toast.success('Welcome back,Admin!')
+        toast.success('Welcome back, Admin!');
       } else if (data.user.role === 'school_admin') {
         navigate('/school-dashboard');
-        toast.success('Logged In Successfully!')
+        toast.success('Logged In Successfully!');
+      } else if (data.user.role === 'staff_member') { 
+        navigate('/staff-dashboard');
+        toast.success('Welcome to your Staff Workspace!');
+      } else if (data.user.role === 'student') { 
+        navigate('/student-dashboard');
+        toast.success('Welcome to your Student Workspace!');
       }
     } catch (err) {
       const errorMessage = err.response?.data?.message || 'Authentication failed';
