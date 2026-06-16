@@ -95,7 +95,6 @@ const SubstitutionModel = {
     },
 
     // NEW: Dynamic retrieval of distinct active dates with substitutions filtered by branch
-    // NEW: Dynamic retrieval of distinct active dates with substitutions filtered by branch
     getActiveDates: async (branchId) => {
         const query = `
         SELECT DISTINCT DATE_FORMAT(tts.substitution_date, '%Y-%m-%d') AS substitution_date
