@@ -25,11 +25,11 @@ const SchoolAdminModel = {
         return true;
     },
 
-    // to add staff member
-    addStaffMember: async (schoolId, roleId, departmentId, name, email) => {
+    // to add staff member with an invitation token
+    addStaffMember: async (schoolId, roleId, departmentId, name, email, token) => {
         await db.query(
-            'CALL sp_AddStaffMember(?,?,?,?,?)',
-            [schoolId, roleId, departmentId, name, email,]
+            'CALL sp_AddStaffMember(?,?,?,?,?,?)',
+            [schoolId, roleId, departmentId, name, email, token]
         );
         return true;
     },
@@ -77,6 +77,20 @@ const SchoolAdminModel = {
     getSalariesReport: async (schoolId) => {
         const [rows] = await db.query('CALL sp_GetSchoolSalaries(?)', [schoolId])
         return rows[0] || [];
+    },
+
+    // for adding student
+    addStudent: async (schoolId, batchId, name, enrollmentNo, email, invitationToken) => {
+        const [result] = await db.query(
+            'CALL sp_AddStudent(?, ?, ?, ?, ?, ?)',
+            [schoolId, batchId, name, enrollmentNo, email, invitationToken]
+        );
+        return result;
+    },
+
+    getStudentsBySchool: async (schoolId) => {
+        const [rows] = await db.query('CALL sp_GetStudentsBySchool(?)', [schoolId]);
+        return rows[0] || []; 
     }
 
 }

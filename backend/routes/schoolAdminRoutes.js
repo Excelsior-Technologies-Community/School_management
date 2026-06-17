@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { addDepartment, listDepartments, updateDepartment, removeDepartment, addMember, listMembers, updateMember, removeMember, addSalary, updateSalary, removeSalary, viewSchoolPayroll } = require('../controllers/schoolAdminController');
+const { registerStudent, getSchoolStudents, addDepartment, listDepartments, updateDepartment, removeDepartment, addMember, listMembers, updateMember, removeMember, addSalary, updateSalary, removeSalary, viewSchoolPayroll } = require('../controllers/schoolAdminController');
 const { verifyToken, restrictTo } = require('../middleware/authMiddleware')
 
 // department routes
@@ -20,5 +20,9 @@ router.post('/payroll/assign', verifyToken, restrictTo('school_admin'), addSalar
 router.put('/payroll/update', verifyToken, restrictTo('school_admin'), updateSalary)
 router.get('/payroll/all', verifyToken, restrictTo('school_admin'), viewSchoolPayroll)
 router.delete('/payroll/clear/:staffId', verifyToken, restrictTo('school_admin'), removeSalary)
+
+// student management 
+router.post('/students/register', verifyToken, restrictTo('school_admin'), registerStudent);
+router.get('/students', verifyToken, restrictTo('school_admin'), getSchoolStudents)
 
 module.exports = router;

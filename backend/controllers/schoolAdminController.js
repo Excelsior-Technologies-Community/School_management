@@ -1,4 +1,54 @@
 const SchoolAdminModel = require('../models/schoolAdminModel');
+const { sendStaffOnboardingEmail } = require('../services/emailService');
+const crypto = require('crypto');
+const { sendStudentOnboardingEmail } = require('../services/emailService');
+
+const registerStudent = async (req, res) => {
+    try {
+        const { batchId, name, enrollmentNo, email } = req.body;
+
+        const schoolId = req.user?.school_id;
+        const schoolName = req.user?.school_name || "Our Institution";
+
+        if (!batchId || !name || !enrollmentNo || !email) {
+            return res.status(400).json({
+                success: false,
+                message: 'All fields (batchId, name, enrollmentNo, email) are required.'
+            });
+        }
+
+        const invitationToken = crypto.randomBytes(32).toString('hex');
+        await SchoolAdminModel.addStudent(schoolId, batchId, name, enrollmentNo, email, invitationToken);
+
+        try {
+            await sendStudentOnboardingEmail(email, name, schoolName, invitationToken);
+        } catch (emailError) {
+            console.error('SMTP Email dispatch failed:', emailError.message);
+        }
+
+        return res.status(201).json({ success: true, message: 'Student profile created successfully and invitation link has been sent.' });
+
+    } catch (error) {
+        return res.status(400).json({ success: false, message: error.message });
+    }
+};
+
+const getSchoolStudents = async (req, res) => {
+    try {
+        const schoolId = req.user?.school_id;
+
+        if (!schoolId) {
+            return res.status(400).json({ success: false, message: 'Invalid token payload: School ID is missing.' });
+        }
+
+        const studentList = await SchoolAdminModel.getStudentsBySchool(schoolId);
+
+        return res.status(200).json({ success: true, data: studentList });
+
+    } catch (error) {
+        return res.status(400).json({ success: false, message: error.message });
+    }
+}
 
 const addDepartment = async (req, res) => {
     try {
@@ -65,8 +115,9 @@ const removeDepartment = async (req, res) => {
 
 const addMember = async (req, res) => {
     try {
-        const { roleId, departmentId, name, email } = req.body;
+        const { roleId, departmentId, name, email, roleName } = req.body;
         const schoolId = req.user?.school_id;
+        const schoolName = req.user?.school_name || "Our School"; // Optional fallback if stored in JWT
 
         if (!schoolId || !roleId || !departmentId || !name || !email) {
             return res.status(400).json({
@@ -75,11 +126,19 @@ const addMember = async (req, res) => {
             });
         }
 
-        await SchoolAdminModel.addStaffMember(schoolId, roleId, departmentId, name, email);
+        // 1. Generate a secure 32-byte crypto token
+        const token = crypto.randomBytes(32).toString('hex');
+
+        // 2. Pass the token down to your updated model method
+        await SchoolAdminModel.addStaffMember(schoolId, roleId, departmentId, name, email, token);
+
+        // 3. Dispatch the onboarding invitation email to the staff member
+        // This will send them the link containing the token to set their password
+        await sendStaffOnboardingEmail(email, name, schoolName, roleName || 'Staff Member', token);
 
         return res.status(201).json({
             success: true,
-            message: 'Staff member added successfully.'
+            message: 'Staff member added successfully and invitation email dispatched.'
         });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
@@ -194,4 +253,4 @@ const viewSchoolPayroll = async (req, res) => {
     }
 }
 
-module.exports = { addDepartment, listDepartments, updateDepartment, removeDepartment, addMember, listMembers, updateMember, removeMember, addSalary, updateSalary, removeSalary, viewSchoolPayroll };
+module.exports = { registerStudent, getSchoolStudents, addDepartment, listDepartments, updateDepartment, removeDepartment, addMember, listMembers, updateMember, removeMember, addSalary, updateSalary, removeSalary, viewSchoolPayroll };
