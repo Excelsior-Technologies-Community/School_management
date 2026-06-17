@@ -8,38 +8,58 @@ import SetupPassword from './pages/SetupPassword';
 import SuperAdminDash from './pages/SuperAdminDash';
 import SchoolAdminDash from './pages/SchoolAdminDash';
 import { ToastContainer } from 'react-toastify';
+import StaffDashboard from './pages/StaffDashboard';
+import StudentDashboard from './pages/StudentDashboard';
 
 export const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 export default function App() {
   return (
     <AuthProvider>
-       <ToastContainer />
-        <Routes>
-      
-          <Route path="/login" element={<Login />} />
-          <Route path="/setup-password" element={<SetupPassword />} />
+      <ToastContainer />
+      <Routes>
 
-          <Route 
-            path="/super-dashboard" 
-            element={
-              <ProtectedRoute allowedRoles={['super_admin']}>
-                <SuperAdminDash />
-              </ProtectedRoute>
-            } 
-          />
+        <Route path="/login" element={<Login />} />
+        <Route path="/setup-password" element={<SetupPassword />} />
 
-          <Route 
-            path="/school-dashboard" 
-            element={
-              <ProtectedRoute allowedRoles={['school_admin']}>
-                <SchoolAdminDash />
-              </ProtectedRoute>
-            } 
-          />
+        <Route
+          path="/super-dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['super_admin']}>
+              <SuperAdminDash />
+            </ProtectedRoute>
+          }
+        />
 
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
+        <Route
+          path="/school-dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['school_admin']}>
+              <SchoolAdminDash />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/staff-dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['staff_member']}>
+              <StaffDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/student-dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['student']}>
+              <StudentDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
     </AuthProvider>
   );
 }

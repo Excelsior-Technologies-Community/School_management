@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Building2, LogOut, Users2, UserPlus, Network, Banknote, Layers, Boxes, GitBranch, Clock } from 'lucide-react';
+import { Building2, LogOut, Users2, UserPlus, Network, Banknote, Layers, Boxes, GitBranch, Clock, Clock1, GraduationCap } from 'lucide-react';
 import axios from 'axios';
 import { backendUrl } from '../App';
 import { toast } from 'react-toastify';
@@ -12,6 +12,7 @@ import PayrollManager from './SchoolAdminDash/PayrollManager';
 import BatchSectionManager from './SchoolAdminDash/BatchSectionManager';
 import BranchSubjectManager from './SchoolAdminDash/BranchSubjectManager';
 import TimetableManagement from './SchoolAdminDash/TimetableManagement';
+import StudentManagement from './SchoolAdminDash/StudentManagement';
 
 const SchoolAdminDash = () => {
   const { user, logoutState } = useAuth();
@@ -294,7 +295,7 @@ const SchoolAdminDash = () => {
 
       {/* Tab selection layout */}
       <div className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 flex gap-6 overflow-x-auto whitespace-nowrap scrollbar-none">
+        <div className="max-w-7xl mx-auto px-4 flex gap-6 overflow-x-auto whitespace-nowrap scrollbar-none">
           <button
             onClick={() => { setActiveTab('directory'); setCurrentPage(1); }}
             className={`py-4 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'directory' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
@@ -336,6 +337,12 @@ const SchoolAdminDash = () => {
             className={`py-4 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'timetable' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
           >
             <Clock size={18} /> Timetable
+          </button>
+          <button
+            onClick={() => { setActiveTab('students'); setCurrentPage(1); }}
+            className={`py-4 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'students' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+          >
+            <GraduationCap size={18} /> Students
           </button>
         </div>
       </div>
@@ -423,11 +430,17 @@ const SchoolAdminDash = () => {
           />
         )}
 
+        {/* Tab for batch timetable */}
         {activeTab === 'timetable' && (
           <TimetableManagement
             schoolId={user?.school_id}
             userContext={user}
           />
+        )}
+
+        {/* Tab for student management */}
+        {activeTab === 'students' && (
+          <StudentManagement />
         )}
 
       </div>
