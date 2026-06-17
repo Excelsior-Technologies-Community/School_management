@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Building2, LogOut, Users2, UserPlus, Network, Banknote, Layers, Boxes, GitBranch, Clock, Clock1, GraduationCap } from 'lucide-react';
+import { 
+  Building2, LogOut, Users2, UserPlus, Network, Banknote, 
+  Layers, Boxes, GitBranch, Clock, GraduationCap, BookOpen, User
+} from 'lucide-react';
 import axios from 'axios';
 import { backendUrl } from '../App';
 import { toast } from 'react-toastify';
@@ -13,10 +16,16 @@ import BatchSectionManager from './SchoolAdminDash/BatchSectionManager';
 import BranchSubjectManager from './SchoolAdminDash/BranchSubjectManager';
 import TimetableManagement from './SchoolAdminDash/TimetableManagement';
 import StudentManagement from './SchoolAdminDash/StudentManagement';
+import StaffDashboard from './StaffDashboard';
 
 const SchoolAdminDash = () => {
   const { user, logoutState } = useAuth();
-  const [activeTab, setActiveTab] = useState('directory');
+  
+  // Establish role evaluation criteria
+  const isStaff = user?.role === 'staff_member';
+
+  // Set default initial screen based on account role type
+  const [activeTab, setActiveTab] = useState(isStaff ? 'homework' : 'directory');
 
   const [staffList, setStaffList] = useState([]);
   const [payrollList, setPayrollList] = useState([]);
@@ -49,6 +58,7 @@ const SchoolAdminDash = () => {
   });
 
   const fetchStaffDirectory = async () => {
+    if (isStaff) return; // Prevent network overhead calls for restricted profiles
     setLoading(true);
     try {
       const res = await axios.get(`${backendUrl}/api/school/list-members`, getAxiosConfig());
@@ -61,6 +71,7 @@ const SchoolAdminDash = () => {
   };
 
   const fetchPayroll = async () => {
+    if (isStaff) return;
     setLoading(true);
     try {
       const res = await axios.get(`${backendUrl}/api/school/payroll/all`, getAxiosConfig());
@@ -73,6 +84,7 @@ const SchoolAdminDash = () => {
   };
 
   const fetchDepartments = async () => {
+    if (isStaff) return;
     setDeptLoading(true);
     try {
       const res = await axios.get(`${backendUrl}/api/school/departments/list`, getAxiosConfig());
@@ -90,6 +102,7 @@ const SchoolAdminDash = () => {
   };
 
   const fetchSchoolClasses = async () => {
+    if (isStaff) return;
     try {
       const res = await axios.get(`${backendUrl}/api/batch/school-classes`, getAxiosConfig());
       if (res.data.success) {
@@ -268,182 +281,202 @@ const SchoolAdminDash = () => {
   const indexOfLastRow = currentPage * rowsPerPage;
   const indexOfFirstRow = indexOfLastRow - rowsPerPage;
 
-  // Payroll Pagination Values
   const currentPayrollItems = payrollList.slice(indexOfFirstRow, indexOfLastRow);
   const totalPayrollPages = Math.ceil(payrollList.length / rowsPerPage);
 
+  // Helper template for clean navigation sidebar entries
+  const renderSidebarButton = (tabName, label, IconComponent, badge = null) => {
+    const isSelected = activeTab === tabName;
+    return (
+      <button
+        onClick={() => {
+          if (tabName === 'add-staff' && !isEditingStaff) resetStaffFormState();
+          if (tabName === 'departments') resetDeptFormState();
+          setActiveTab(tabName);
+          setCurrentPage(1);
+        }}
+        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200 group ${
+          isSelected 
+            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10' 
+            : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <IconComponent size={18} className={isSelected ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'} />
+          <span>{label}</span>
+        </div>
+        {badge !== null && (
+          <span className={`text-[11px] px-2 py-0.5 rounded-md font-mono ${
+            isSelected ? 'bg-blue-700 text-blue-100' : 'bg-slate-800 text-slate-400'
+          }`}>
+            {badge}
+          </span>
+        )}
+      </button>
+    );
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <nav className="bg-blue-900 text-white px-6 py-4 flex justify-between items-center shadow-md shrink-0">
-        <h1 className="text-lg font-bold flex items-center gap-2">
-          <Building2 className="text-blue-300 animate-pulse" size={22} />
-          School Administrative Workspace
-        </h1>
-        <div className="flex items-center gap-4">
-          <div className="text-right hidden sm:block">
-            <p className="text-sm font-bold text-slate-100">{user?.name || 'School Administrator'}</p>
-            <p className="text-xs text-blue-200 uppercase tracking-widest font-mono">School Admin</p>
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
+      
+      {/* LEFT SIDEBAR PANEL */}
+      <aside className="w-full md:w-64 bg-slate-900 text-slate-100 flex flex-col border-r border-slate-800 shrink-0 sticky top-0 h-auto md:h-screen z-20">
+        
+        {/* Workspace Brand Block */}
+        <div className="px-6 py-5 border-b border-slate-800 flex items-center gap-2.5">
+          <Building2 className="text-blue-400" size={24} />
+          <div>
+            <h1 className="text-sm font-bold tracking-wide text-white uppercase">School Workspace</h1>
           </div>
+        </div>
+
+        {/* User Identity Panel */}
+        <div className="px-4 py-4 mx-3 my-3 bg-slate-950/60 border border-slate-800/80 rounded-xl flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
+            <User size={16} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold text-slate-200 truncate">{user?.name || 'Authorized Profile'}</p>
+            <p className="text-[9px] text-blue-400 font-mono font-bold uppercase tracking-wider mt-0.5">
+              {isStaff ? 'Academic Staff' : 'School Admin'}
+            </p>
+          </div>
+        </div>
+
+        {/* Dynamic Navigation Sidebar Links */}
+        <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto scrollbar-none">
+          {renderSidebarButton('homework', 'Homework & Tasks', BookOpen)}
+
+          {!isStaff && (
+            <>
+              <div className="pt-4 pb-1 px-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 font-mono">
+                Human Resources
+              </div>
+              {renderSidebarButton('directory', 'Staff Registry', Users2, staffList.length)}
+              {renderSidebarButton('add-staff', isEditingStaff ? 'Modify Profile' : 'Onboard Staff', UserPlus)}
+              {renderSidebarButton('payroll', 'Payroll Registry', Banknote)}
+
+              <div className="pt-4 pb-1 px-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 font-mono">
+                Academic Operations
+              </div>
+              {renderSidebarButton('departments', 'Departments', Network, departmentList.length)}
+              {renderSidebarButton('branches-subjects', 'Branches & Subjects', GitBranch)}
+              {renderSidebarButton('batches-sections', 'Sections & Batches', Boxes)}
+              {renderSidebarButton('timetable', 'Timetable Management', Clock)}
+              {renderSidebarButton('students', 'Students', GraduationCap)}
+            </>
+          )}
+        </nav>
+
+        {/* Action Logout Footer Block */}
+        <div className="p-3 border-t border-slate-800 bg-slate-950/30">
           <button
             onClick={logoutState}
-            className="flex items-center gap-1.5 bg-blue-950 px-3 py-1.5 rounded-lg text-sm hover:bg-slate-900 border border-blue-800 transition-colors font-medium"
+            className="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-rose-950/30 border border-slate-700/60 hover:border-rose-900/40 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-rose-400 transition-all duration-150"
           >
-            <LogOut size={16} /> Logout
+            <LogOut size={14} /> Logout
           </button>
         </div>
-      </nav>
+      </aside>
 
-      {/* Tab selection layout */}
-      <div className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 flex gap-6 overflow-x-auto whitespace-nowrap scrollbar-none">
-          <button
-            onClick={() => { setActiveTab('directory'); setCurrentPage(1); }}
-            className={`py-4 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'directory' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
-          >
-            <Users2 size={18} /> Staff Registry ({staffList.length})
-          </button>
-          <button
-            onClick={() => { if (!isEditingStaff) resetStaffFormState(); setActiveTab('add-staff'); setCurrentPage(1); }}
-            className={`py-4 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'add-staff' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
-          >
-            <UserPlus size={18} /> {isEditingStaff ? 'Modify Staff Profile' : 'Onboard Staff'}
-          </button>
-          <button
-            onClick={() => { resetDeptFormState(); setActiveTab('departments'); setCurrentPage(1); }}
-            className={`py-4 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'departments' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
-          >
-            <Network size={18} /> Departments ({departmentList.length})
-          </button>
-          <button
-            onClick={() => { setActiveTab('payroll'); setCurrentPage(1); }}
-            className={`py-4 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'payroll' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
-          >
-            <Banknote size={18} /> Payroll
-          </button>
-          <button
-            onClick={() => { setActiveTab('branches-subjects'); setCurrentPage(1); }}
-            className={`py-4 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'branches-subjects' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
-          >
-            <GitBranch size={18} /> Branches & Subjects
-          </button>
-          <button
-            onClick={() => { setActiveTab('batches-sections'); setCurrentPage(1); }}
-            className={`py-4 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'batches-sections' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
-          >
-            <Boxes size={18} /> Sections & Batches
-          </button>
-          <button
-            onClick={() => { setActiveTab('timetable'); setCurrentPage(1); }}
-            className={`py-4 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'timetable' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
-          >
-            <Clock size={18} /> Timetable
-          </button>
-          <button
-            onClick={() => { setActiveTab('students'); setCurrentPage(1); }}
-            className={`py-4 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'students' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
-          >
-            <GraduationCap size={18} /> Students
-          </button>
+      {/* RIGHT DISPLAY VIEWPORT */}
+      <main className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
+        <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto flex-1">
+
+          {/* Render Homework UI Component view slot */}
+          {activeTab === 'homework' && (
+            <StaffDashboard user={user} logoutState={logoutState} />
+          )}
+
+          {/* Render Remaining Sub-Modules conditionally based on active tabs */}
+          {activeTab === 'directory' && !isStaff && (
+            <StaffDirectory
+              staffList={staffList}
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              rowsPerPage={rowsPerPage}
+              loading={loading}
+              fetchStaffDirectory={fetchStaffDirectory}
+              handleEditStaffClick={handleEditStaffClick}
+              handleRemoveStaff={handleRemoveStaff}
+            />
+          )}
+
+          {activeTab === 'add-staff' && !isStaff && (
+            <StaffForm
+              isEditingStaff={isEditingStaff}
+              staffForm={staffForm}
+              setStaffForm={setStaffForm}
+              departmentList={departmentList}
+              handleStaffSubmit={handleStaffSubmit}
+              resetStaffFormState={resetStaffFormState}
+            />
+          )}
+
+          {activeTab === 'departments' && !isStaff && (
+            <DepartmentManager
+              departmentList={departmentList}
+              deptFormName={deptFormName}
+              setDeptFormName={setDeptFormName}
+              isEditingDept={isEditingDept}
+              setIsEditingDept={setIsEditingDept}
+              editingDeptId={editingDeptId}
+              setEditingDeptId={setEditingDeptId}
+              deptLoading={deptLoading}
+              fetchDepartments={fetchDepartments}
+              handleDepartmentSubmit={handleDepartmentSubmit}
+              handleEditDeptClick={handleEditDeptClick}
+              resetDeptFormState={resetDeptFormState}
+              handleRemoveDepartment={handleRemoveDepartment}
+              fetchStaffDirectory={fetchStaffDirectory}
+            />
+          )}
+
+          {activeTab === 'payroll' && !isStaff && (
+            <PayrollManager
+              payrollList={payrollList}
+              salaryForm={salaryForm}
+              setSalaryForm={setSalaryForm}
+              isEditingSalary={isEditingSalary}
+              setIsEditingSalary={setIsEditingSalary}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              rowsPerPage={rowsPerPage}
+              loading={loading}
+              fetchPayroll={fetchPayroll}
+              handleSalarySubmit={handleSalarySubmit}
+              handleClearSalary={handleClearSalary}
+            />
+          )}
+
+          {activeTab === 'branches-subjects' && !isStaff && (
+            <BranchSubjectManager getAxiosConfig={getAxiosConfig} />
+          )}
+
+          {activeTab === 'batches-sections' && !isStaff && (
+            <BatchSectionManager
+              getAxiosConfig={getAxiosConfig}
+              activeSchoolClasses={activeSchoolClasses}
+              fetchSchoolClasses={fetchSchoolClasses}
+            />
+          )}
+
+          {activeTab === 'timetable' && !isStaff && (
+            <TimetableManagement
+              schoolId={user?.school_id}
+              userContext={user}
+            />
+          )}
+
+          {activeTab === 'students' && !isStaff && (
+            <StudentManagement />
+          )}
+
         </div>
-      </div>
+      </main>
 
-      <div className="max-w-6xl w-full mx-auto p-4 flex-1 mt-4">
-
-        {/* Tab for staff directory */}
-        {activeTab === 'directory' && (
-          <StaffDirectory
-            staffList={staffList}
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            currentPage={currentPage}
-            setCurrentPage={setCurrentPage}
-            rowsPerPage={rowsPerPage}
-            loading={loading}
-            fetchStaffDirectory={fetchStaffDirectory}
-            handleEditStaffClick={handleEditStaffClick}
-            handleRemoveStaff={handleRemoveStaff}
-          />
-        )}
-
-        {/* Tab for adding/updating staff */}
-        {activeTab === 'add-staff' && (
-          <StaffForm
-            isEditingStaff={isEditingStaff}
-            staffForm={staffForm}
-            setStaffForm={setStaffForm}
-            departmentList={departmentList}
-            handleStaffSubmit={handleStaffSubmit}
-            resetStaffFormState={resetStaffFormState}
-          />
-        )}
-
-        {/* Tab for department management */}
-        {activeTab === 'departments' && (
-          <DepartmentManager
-            departmentList={departmentList}
-            deptFormName={deptFormName}
-            setDeptFormName={setDeptFormName}
-            isEditingDept={isEditingDept}
-            setIsEditingDept={setIsEditingDept}
-            editingDeptId={editingDeptId}
-            setEditingDeptId={setEditingDeptId}
-            deptLoading={deptLoading}
-            fetchDepartments={fetchDepartments}
-            handleDepartmentSubmit={handleDepartmentSubmit}
-            handleEditDeptClick={handleEditDeptClick}
-            resetDeptFormState={resetDeptFormState}
-            handleRemoveDepartment={handleRemoveDepartment}
-            fetchStaffDirectory={fetchStaffDirectory}
-          />
-        )}
-
-        {/* Tab for salary management */}
-        {activeTab === 'payroll' && (
-          <PayrollManager
-            payrollList={payrollList}
-            salaryForm={salaryForm}
-            setSalaryForm={setSalaryForm}
-            isEditingSalary={isEditingSalary}
-            setIsEditingSalary={setIsEditingSalary}
-            currentPage={currentPage}
-            setCurrentPage={setCurrentPage}
-            rowsPerPage={rowsPerPage}
-            loading={loading}
-            fetchPayroll={fetchPayroll}
-            handleSalarySubmit={handleSalarySubmit}
-            handleClearSalary={handleClearSalary}
-          />
-        )}
-
-        {/* Tab for school branches and subjects */}
-        {activeTab === 'branches-subjects' && (
-          <BranchSubjectManager getAxiosConfig={getAxiosConfig} />
-        )}
-
-
-        {/* Tab for school classes, sections crud and batch crud */}
-        {activeTab === 'batches-sections' && (
-          <BatchSectionManager
-            getAxiosConfig={getAxiosConfig}
-            activeSchoolClasses={activeSchoolClasses}
-            fetchSchoolClasses={fetchSchoolClasses}
-          />
-        )}
-
-        {/* Tab for batch timetable */}
-        {activeTab === 'timetable' && (
-          <TimetableManagement
-            schoolId={user?.school_id}
-            userContext={user}
-          />
-        )}
-
-        {/* Tab for student management */}
-        {activeTab === 'students' && (
-          <StudentManagement />
-        )}
-
-      </div>
     </div>
   );
 };
