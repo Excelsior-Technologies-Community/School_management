@@ -1257,65 +1257,74 @@
       }
     },
     "/api/batch/school-batches/add": {
-      "post": {
-        "summary": "Instantiate active school academic calendar combinations structural batch link profile",
-        "tags": [
-          "School Admin - Batches"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "school_class_id",
-                  "section_id",
-                  "academic_year"
-                ],
-                "properties": {
-                  "school_class_id": {
-                    "type": "integer",
-                    "example": 1
-                  },
-                  "section_id": {
-                    "type": "integer",
-                    "example": 1
-                  },
-                  "academic_year": {
-                    "type": "string",
-                    "example": "2026-2027"
-                  }
+    "post": {
+      "summary": "Create a new school batch",
+      "description": "Instantiates a new academic batch linking a specific branch, class, section, and academic year. Note: school_id is extracted securely from the user token context server-side.",
+      "tags": [
+        "School Admin - Batches"
+      ],
+      "security": [
+        {
+          "bearerAuth": []
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "branch_id",
+                "school_class_id",
+                "section_id",
+                "academic_year"
+              ],
+              "properties": {
+                "branch_id": {
+                  "type": "integer",
+                  "description": "The unique database ID of the target school branch",
+                  "example": 1
+                },
+                "school_class_id": {
+                  "type": "integer",
+                  "description": "The unique database ID of the target school class",
+                  "example": 1
+                },
+                "section_id": {
+                  "type": "integer",
+                  "description": "The unique database ID of the target class section",
+                  "example": 1
+                },
+                "academic_year": {
+                  "type": "string",
+                  "description": "The tracking academic year identifier",
+                  "example": "2026-2027"
                 }
               }
             }
           }
-        },
-        "responses": {
-          "201": {
-            "description": "Functional matrix grouping batch generated tracking grid setup complete.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Batch Created Successfully"
-                    },
-                    "batch_id": {
-                      "type": "integer",
-                      "example": 1
-                    }
+        }
+      },
+      "responses": {
+        "201": {
+          "description": "Batch created successfully through the backing execution routine.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "message": {
+                    "type": "string",
+                    "example": "Batch Created Successfully"
+                  },
+                  "batch_id": {
+                    "type": "integer",
+                    "example": 1
                   }
                 }
               }
@@ -1323,63 +1332,64 @@
           }
         }
       }
-    },
-    "/api/batch/school-batches": {
-      "get": {
-        "summary": "Fetch full dynamic matrix relational list mapping across all configured school batches",
-        "tags": [
-          "School Admin - Batches"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Full school batch data returned cleanly.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "batch_id": {
-                            "type": "integer",
-                            "example": 1
-                          },
-                          "school_class_id": {
-                            "type": "integer",
-                            "example": 1
-                          },
-                          "section_id": {
-                            "type": "integer",
-                            "example": 1
-                          },
-                          "academic_year": {
-                            "type": "string",
-                            "example": "2026-2027"
-                          },
-                          "status": {
-                            "type": "string",
-                            "example": "Active"
-                          },
-                          "class_name": {
-                            "type": "string",
-                            "example": "Class 10"
-                          },
-                          "section_name": {
-                            "type": "string",
-                            "example": "B"
-                          }
+    }
+  },
+  "/api/batch/school-batches": {
+    "get": {
+      "summary": "Get all configured school batches",
+      "description": "Fetches a relational matrix list mapping across all configured school batches belonging to the authenticated administrator's school context.",
+      "tags": [
+        "School Admin - Batches"
+      ],
+      "security": [
+        {
+          "bearerAuth": []
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Full contextual school batch dataset returned cleanly.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "data": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "batch_id": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "school_class_id": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "section_id": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "academic_year": {
+                          "type": "string",
+                          "example": "2026-2027"
+                        },
+                        "status": {
+                          "type": "string",
+                          "example": "Active"
+                        },
+                        "class_name": {
+                          "type": "string",
+                          "example": "Class 10"
+                        },
+                        "section_name": {
+                          "type": "string",
+                          "example": "B"
                         }
                       }
                     }
@@ -1390,118 +1400,81 @@
           }
         }
       }
-    },
-    "/api/batch/school-batches/{id}": {
-      "put": {
-        "summary": "Modify configuration elements inside an already running student academic tracking batch link",
-        "tags": [
-          "School Admin - Batches"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            },
-            "description": "Target batch_id"
-          }
-        ],
-        "requestBody": {
+    }
+  },
+  "/api/batch/school-batches/{id}": {
+    "put": {
+      "summary": "Update an existing school batch",
+      "description": "Modifies properties for an active academic tracking batch link profile by unique path token identifier key.",
+      "tags": [
+        "School Admin - Batches"
+      ],
+      "security": [
+        {
+          "bearerAuth": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
           "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "school_class_id",
-                  "section_id",
-                  "academic_year"
-                ],
-                "properties": {
-                  "school_class_id": {
-                    "type": "integer",
-                    "example": 1
-                  },
-                  "section_id": {
-                    "type": "integer",
-                    "example": 1
-                  },
-                  "academic_year": {
-                    "type": "string",
-                    "example": "2027-2028"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Batch structural profile attributes changed safely.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Batch Updated Successfully"
-                    }
-                  }
+          "schema": {
+            "type": "integer"
+          },
+          "description": "The unique primary structural batch_id tracking record key"
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "branch_id",
+                "school_class_id",
+                "section_id",
+                "academic_year"
+              ],
+              "properties": {
+                "branch_id": {
+                  "type": "integer",
+                  "description": "The unique database ID of the target school branch",
+                  "example": 1
+                },
+                "school_class_id": {
+                  "type": "integer",
+                  "example": 1
+                },
+                "section_id": {
+                  "type": "integer",
+                  "example": 1
+                },
+                "academic_year": {
+                  "type": "string",
+                  "example": "2027-2028"
                 }
               }
             }
           }
         }
       },
-      "delete": {
-        "summary": "Drop a student academic structural batch tracking record vector layout row index line",
-        "tags": [
-          "School Admin - Batches"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            },
-            "description": "Target batch_id"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Batch element deleted clean.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Batch deleted successfully"
-                    }
+      "responses": {
+        "200": {
+          "description": "Batch structural profile attributes changed cleanly via backend database state procedures.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "message": {
+                    "type": "string",
+                    "example": "Batch Updated Successfully"
                   }
                 }
               }
@@ -1510,6 +1483,52 @@
         }
       }
     },
+    "delete": {
+      "summary": "Delete a school batch tracking record",
+      "description": "Removes a student academic structural batch layout record vector link entirely.",
+      "tags": [
+        "School Admin - Batches"
+      ],
+      "security": [
+        {
+          "bearerAuth": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          },
+          "description": "Target batch_id"
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Batch element wiped out and structural matrix cleared.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "message": {
+                    "type": "string",
+                    "example": "Batch deleted successfully"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
     "/api/batch/school-batches/toggle-status/{id}": {
       "put": {
         "summary": "Toggle operational status of a specific school batch record",
