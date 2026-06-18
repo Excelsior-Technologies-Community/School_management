@@ -8,7 +8,6 @@ import SetupPassword from './pages/SetupPassword';
 import SuperAdminDash from './pages/SuperAdminDash';
 import SchoolAdminDash from './pages/SchoolAdminDash';
 import { ToastContainer } from 'react-toastify';
-import StaffDashboard from './pages/StaffDashboard';
 import StudentDashboard from './pages/StudentDashboard';
 
 export const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -18,7 +17,6 @@ export default function App() {
     <AuthProvider>
       <ToastContainer />
       <Routes>
-
         <Route path="/login" element={<Login />} />
         <Route path="/setup-password" element={<SetupPassword />} />
 
@@ -31,23 +29,18 @@ export default function App() {
           }
         />
 
+        {/*  Allow BOTH school_admin and staff_member to enter this workspace component */}
         <Route
           path="/school-dashboard"
           element={
-            <ProtectedRoute allowedRoles={['school_admin']}>
+            <ProtectedRoute allowedRoles={['school_admin', 'staff_member']}>
               <SchoolAdminDash />
             </ProtectedRoute>
           }
         />
 
-        <Route
-          path="/staff-dashboard"
-          element={
-            <ProtectedRoute allowedRoles={['staff_member']}>
-              <StaffDashboard />
-            </ProtectedRoute>
-          }
-        />
+        {/* If any staff user manually hits old endpoint, seamlessly redirect them over */}
+        <Route path="/staff-dashboard" element={<Navigate to="/school-dashboard" replace />} />
 
         <Route
           path="/student-dashboard"
