@@ -159,7 +159,6 @@ const createSubstitution = async (req, res) => {
         if (parseInt(substitute_teacher_id) === parseInt(original_teacher_id)) {
             return res.status(400).json({ success: false, message: 'Substitute teacher cannot match the original instructor.' });
         }
-
         const newSubstitution = await SubstitutionModel.create(req.user.id, {
             time_table_id, original_teacher_id, substitute_teacher_id, substitution_date, reason, remark, status
         });
@@ -180,14 +179,29 @@ const deleteSubstitution = async (req, res) => {
     }
 };
 
-// Adjusted parameter key checking structure to remain uniform
 const getActiveDates = async (req, res) => {
     try {
-        const { branch_id } = req.query; 
+        const { branch_id } = req.query;
         if (!branch_id) return res.status(400).json({ success: false, message: 'branch_id query parameter required.' });
-        
+
         const dates = await SubstitutionModel.getActiveDates(branch_id);
         return res.status(200).json({ success: true, dates });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+const getTimetableByTeacher = async (req, res) => {
+    try {
+        const teacherId = req.user.id;
+
+        if (!teacherId) {
+            return res.status(400).json({ success: false, message: "Teacher id missing." });
+        }
+
+        const rows = await TimeTableModel.getStaffTimetable(teacherId);
+        return res.status(200).json({ success: true, count: rows.length, data: rows });
+
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
     }
@@ -197,5 +211,6 @@ module.exports = {
     getPeriods, createPeriod, updatePeriod, togglePeriodStatus, deletePeriod,
     getTimeTableByBatch, createTimeTableEntry, updateTimeTableEntry, deleteTimeTableEntry,
     getSubstitutions, createSubstitution, deleteSubstitution,
-    getActiveDates
+    getActiveDates,
+    getTimetableByTeacher
 };

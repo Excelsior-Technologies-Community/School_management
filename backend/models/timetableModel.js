@@ -81,6 +81,11 @@ const TimeTableModel = {
     delete: async (timeTableId) => {
         await db.query('CALL sp_ManageTimeTable("DELETE", ?, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)', [timeTableId]);
         return true;
+    },
+
+    getStaffTimetable: async (teacherId) => {
+        const [result] = await db.query('CALL GetTimetableByTeacher(?)',[teacherId]);
+        return result[0] || [];
     }
 }
 
@@ -94,7 +99,6 @@ const SubstitutionModel = {
         return rows;
     },
 
-    // NEW: Dynamic retrieval of distinct active dates with substitutions filtered by branch
     getActiveDates: async (branchId) => {
         const query = `
         SELECT DISTINCT DATE_FORMAT(tts.substitution_date, '%Y-%m-%d') AS substitution_date

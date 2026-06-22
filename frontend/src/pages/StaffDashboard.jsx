@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Upload, FileText, X, AlertCircle, CheckCircle2, Loader2, BookOpen, Calendar, ClipboardList, Eye, Plus, Clock, Award, ShieldAlert, User, Check, ChevronRight } from 'lucide-react';
+import { Upload, FileText, X, AlertCircle, CheckCircle2, Loader2, BookOpen, Calendar, ClipboardList, Eye, Plus, Clock, Award, ShieldAlert, User, Check, ChevronRight, MapPin, RefreshCw } from 'lucide-react';
 import { backendUrl } from '../App';
 import { toast } from 'react-toastify';
 
@@ -25,7 +25,11 @@ const StaffDashboard = ({ logoutState }) => {
   const [filteredSubjects, setFilteredSubjects] = useState([]);
   const [fetchLoading, setFetchLoading] = useState(true);
 
-  // Late requests and grading states 
+  // states for timetable
+  const [timetable, setTimetable] = useState([]);
+  const [timetableLoading, setTimetableLoading] = useState(false);
+
+  // Late requests and grading states
   const [lateRequests, setLateRequests] = useState([]);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState('');
   const [submissions, setSubmissions] = useState([]);
@@ -45,6 +49,7 @@ const StaffDashboard = ({ logoutState }) => {
   const [attachmentFile, setAttachmentFile] = useState(null);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState({ type: '', text: '' });
+
 
   const initDashboardData = async () => {
     try {
@@ -74,15 +79,35 @@ const StaffDashboard = ({ logoutState }) => {
         setUniqueBatches(Array.from(batchMap.values()));
       }
     } catch (error) {
-      console.error('Error syncing operational dashboard metrics:', error);
+      toast.error(error.response?.data?.message || 'Error syncing dashboard')
     } finally {
       setFetchLoading(false);
     }
   };
 
+  const fetchTeacherTimetable = async () => {
+    try {
+      setTimetableLoading(true);
+      const res = await axios.get(`${backendUrl}/api/timetable/staff-timetable`, getAxiosConfig());
+      if (res.data.success) {
+        setTimetable(res.data.data || []);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error fetching timetable')
+    } finally {
+      setTimetableLoading(false);
+    }
+  }
+
   useEffect(() => {
     initDashboardData();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'timetable') {
+      fetchTeacherTimetable();
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     if (!selectedAssignmentId) {
@@ -93,13 +118,12 @@ const StaffDashboard = ({ logoutState }) => {
       try {
         setSubmissionsLoading(true);
         const res = await axios.get(`${backendUrl}/api/homework/submissions/${selectedAssignmentId}`, getAxiosConfig());
-        console.log(res.data);
 
         if (res.data.success) {
           setSubmissions(res.data.data || []);
         }
       } catch (error) {
-        console.error('Error retrieving sub-records:', error);
+        toast.error(error.response?.data?.message || 'Error retrieving submissions')
       } finally {
         setSubmissionsLoading(false);
       }
@@ -107,7 +131,6 @@ const StaffDashboard = ({ logoutState }) => {
     fetchSubmissions();
   }, [selectedAssignmentId]);
 
-  // Update dynamic subject dropdown selections whenever selected batch shifts
   useEffect(() => {
     if (!formData.batch_id) {
       setFilteredSubjects([]);
@@ -210,7 +233,6 @@ const StaffDashboard = ({ logoutState }) => {
     }
   };
 
-
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <div className="p-4 sm:p-6 lg:p-8 flex-1">
@@ -232,7 +254,6 @@ const StaffDashboard = ({ logoutState }) => {
             >
               <Plus className="w-4 h-4" /> Assignments
             </button>
-
             <button
               onClick={() => setActiveTab('late-requests')}
               className={`px-4 py-2 text-xs font-bold rounded-lg transition relative snap-center flex items-center gap-1.5 shrink-0 ${activeTab === 'late-requests' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
@@ -245,13 +266,19 @@ const StaffDashboard = ({ logoutState }) => {
                 </span>
               )}
             </button>
-
             <button
               onClick={() => setActiveTab('grading')}
               className={`px-4 py-2 text-xs font-bold rounded-lg transition snap-center flex items-center gap-1.5 shrink-0 ${activeTab === 'grading' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
                 }`}
             >
               <Award className="w-4 h-4" /> Evaluation
+            </button>
+            <button
+              onClick={() => setActiveTab('timetable')}
+              className={`px-4 py-2 text-xs font-bold rounded-lg transition snap-center flex items-center gap-1.5 shrink-0 ${activeTab === 'timetable' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+            >
+              <Calendar className="w-4 h-4" /> Schedule Timetable
             </button>
           </div>
         </div>
@@ -589,7 +616,6 @@ const StaffDashboard = ({ logoutState }) => {
                 )}
               </div>
 
-
               <div className="lg:col-span-5 bg-white p-5 sm:p-6 border border-slate-200 rounded-xl shadow-sm">
                 <h3 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-1.5">
                   <Award className="w-5 h-5 text-blue-600" /> Scoreboard Panel
@@ -665,6 +691,150 @@ const StaffDashboard = ({ logoutState }) => {
 
             </div>
           )}
+
+          {activeTab === 'timetable' && (() => {
+            const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const uniquePeriodNumbers = [...new Set(timetable.map(slot => Number(slot.period_id)))].sort((a, b) => a - b);
+
+            const timetableGrid = {};
+            uniquePeriodNumbers.forEach(pId => {
+              timetableGrid[pId] = {};
+              daysOfWeek.forEach(day => {
+                const match = timetable.find(
+                  slot => Number(slot.period_id) === pId &&
+                    String(slot.day_of_week).trim().toLowerCase() === day.toLowerCase() &&
+                    slot.status === 'Active'
+                );
+                timetableGrid[pId][day] = match || null;
+              });
+            });
+
+            return (
+              <div className='bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col'>
+                <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-5 sm:p-6 border-b border-slate-100'>
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                      <Calendar className="w-5 h-5 text-blue-600" />
+                      Weekly Lecture Timetable
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">Your dynamic matrix layout mapping out assigned lecture slots across days.</p>
+                  </div>
+                  <button
+                    onClick={fetchTeacherTimetable}
+                    disabled={timetableLoading}
+                    className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition shrink-0 self-start sm:self-auto disabled:opacity-50"
+                  >
+                    <RefreshCw size={13} className={`mr-0.5 ${timetableLoading ? 'animate-spin' : ''}`} />
+                    Refresh Schedule
+                  </button>
+                </div>
+
+                {timetableLoading ? (
+                  <div className="flex flex-col items-center justify-center py-24 gap-2 bg-slate-50/30">
+                    <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+                    <p className="text-xs text-slate-400 font-medium">Assembling lecture grid layout...</p>
+                  </div>
+                ) : timetable.length === 0 ? (
+                  <div className="text-center py-16 m-6 border-2 border-dashed border-slate-100 rounded-xl bg-white">
+                    <Calendar className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                    <p className="text-sm font-medium text-slate-500">No active timetable entries assigned to your account.</p>
+                  </div>
+                ) : (
+                  <div className='overflow-x-auto min-w-full align-middle'>
+                    <table className='w-full text-left text-xs border-collapse table-fixed min-w-200'>
+                      <thead>
+                        <tr className='bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase text-[11px]'>
+                          <th className='py-3.5 px-4 bg-slate-100 border-r border-slate-200 w-28 text-center sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]'>
+                            Period / Day
+                          </th>
+                          {daysOfWeek.map(day => (
+                            <th key={day} className='py-3.5 px-3 text-center border-r border-slate-200 last:border-r-0'>
+                              {day}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className='divide-y divide-slate-200'>
+                        {uniquePeriodNumbers.map(pId => {
+                          const currentSlotSample = timetable.find(slot => Number(slot.period_id) === pId);
+                          const durationLabel = currentSlotSample?.duration_minutes ? `${currentSlotSample.duration_minutes} mins` : '';
+
+                          return (
+                            <tr key={pId} className='hover:bg-slate-50/30 transition-colors group'>
+                              <td className='py-4 px-3 text-center font-bold bg-slate-50 border-r border-slate-200 sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] group-hover:bg-slate-100/80 transition-colors'>
+                                <div className='text-slate-800 text-xs font-black'>Period {pId}</div>
+                                {durationLabel && (
+                                  <div className='text-[10px] font-medium text-slate-400 mt-0.5 whitespace-nowrap flex items-center justify-center gap-0.5'>
+                                    <Clock size={10} />
+                                    <span>{durationLabel}</span>
+                                  </div>
+                                )}
+                              </td>
+
+                              {daysOfWeek.map(day => {
+                                const slot = timetableGrid[pId][day];
+                                if (!slot) {
+                                  return (
+                                    <td key={day} className='py-3 px-2 border-r border-slate-200 last:border-r-0 text-center align-middle bg-slate-50/10'>
+                                      <span className='text-[11px] italic font-medium text-slate-300 select-none'>— Free —</span>
+                                    </td>
+                                  );
+                                }
+
+                                return (
+                                  <td
+                                    key={day}
+                                    className='p-2 border-r border-slate-200 last:border-r-0 transition-all relative'
+                                    style={{
+                                      backgroundColor: `${'#3b82f6'}05`
+                                    }}
+                                  >
+                                    <div
+                                      className='flex flex-col h-full min-h-19 justify-between text-center rounded-lg p-2 border'
+                                      style={{
+                                        borderColor: `${'#3b82f6'}25`,
+                                        backgroundColor: `${'#3b82f6'}10`
+                                      }}
+                                    >
+                                      <div
+                                        className='text-[11px] font-bold truncate rounded px-1.5 py-0.5 border text-center shadow-sm mb-1 bg-white'
+                                        style={{
+                                          color: '#1e293b',
+                                          borderColor: `${'#3b82f6'}30`
+                                        }}
+                                        title={slot.subject_name}
+                                      >
+                                        {slot.subject_name}
+                                      </div>
+
+                                      <div className='text-[10px] text-blue-600 font-semibold truncate flex items-center justify-center gap-1' title={slot.batch_name}>
+                                        <span className='truncate'>{slot.batch_name || 'N/A'}</span>
+                                      </div>
+
+                                      <div className='text-[10px] text-slate-500 font-mono font-semibold mt-0.5 flex items-center justify-center gap-0.5'>
+                                        <MapPin size={10} className='text-slate-400 shrink-0' />
+                                        <span>Room: {slot.room_no || '—'}</span>
+                                      </div>
+                                    </div>
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {!timetableLoading && timetable.length > 0 && (
+                  <div className='px-4 py-2.5 bg-slate-50 border-t border-slate-200 text-[10px] text-slate-400 font-medium flex items-center justify-between'>
+                    <span className='font-mono text-slate-500'>Total Slots: {timetable.filter(s => s.status === 'Active').length} Active Lectures</span>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
         </div>
       </div>
