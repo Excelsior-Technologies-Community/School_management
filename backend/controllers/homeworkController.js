@@ -2,6 +2,7 @@ const HomeworkModel = require('../models/homeworkModel');
 const cloudinary = require('../config/cloudinary');
 const fs = require('fs');
 require('dotenv').config();
+const db = require('../config/db')
 
 const safeUnlink = (file) => {
     if (file && file.path && fs.existsSync(file.path)) {
@@ -15,7 +16,6 @@ const addHomeworkAssignment = async (req, res) => {
         const staff_id = req.user?.id;
 
         const { batch_id, school_subject_id, homework_category, homework_title, description, assigned_date, due_date } = req.body;
-
 
         if (!batch_id || !school_subject_id || !homework_category || !homework_title || !description || !assigned_date || !due_date) {
             if (req.file && req.file.path && fs.existsSync(req.file.path)) {
@@ -32,15 +32,13 @@ const addHomeworkAssignment = async (req, res) => {
             }
 
             try {
-                // Sanitize the Windows path
                 const cleanPath = req.file.path.replace(/\\/g, "/");
                 const isImage = req.file.mimetype.startsWith('image/');
 
-
-                // CORE FIX: Use 'unsigned_upload' and pass your exact preset name
+                // Use 'unsigned_upload' and pass your exact preset name
                 const uploadResult = await cloudinary.uploader.unsigned_upload(
                     cleanPath,
-                    'jplucakn', // Your exact preset name from the screenshot
+                    'jplucakn',
                     {
                         resource_type: isImage ? 'image' : 'raw',
                         folder: 'school_homework_attachments'
@@ -49,13 +47,11 @@ const addHomeworkAssignment = async (req, res) => {
 
                 finalAttachments.push(uploadResult.secure_url);
 
-                // Local file cleanup post-upload
                 if (fs.existsSync(req.file.path)) {
                     fs.unlinkSync(req.file.path);
                 }
 
             } catch (cloudErr) {
-                // Cleanup local temp file if the cloud upload fails
                 if (req.file.path && fs.existsSync(req.file.path)) {
                     fs.unlinkSync(req.file.path);
                 }
@@ -96,7 +92,7 @@ const getStaffAssignments = async (req, res) => {
 const getStudentAssignedHomework = async (req, res) => {
     try {
         const school_id = req.user?.school_id;
-        const student_id = req.user?.id; 
+        const student_id = req.user?.id;
         const assignedList = await HomeworkModel.getHomeworkForStudent(school_id, student_id);
         return res.status(200).json({ success: true, data: assignedList });
     } catch (error) {
@@ -125,7 +121,7 @@ const submitHomeworkOrLateRequest = async (req, res) => {
 
                 const uploadResult = await cloudinary.uploader.unsigned_upload(
                     cleanPath,
-                    'jplucakn', // Using your exact configuration preset variable
+                    'jplucakn',
                     {
                         resource_type: isImage ? 'image' : 'raw',
                         folder: 'student_homework_submissions'
@@ -148,7 +144,6 @@ const submitHomeworkOrLateRequest = async (req, res) => {
             late_reason
         });
 
-        // Determine correct status code depending on system execution patterns returned from the SQL query blocks
         if (['PENDING_APPROVAL', 'REQUEST_REJECTED'].includes(dbResponse.result_status)) {
             return res.status(403).json({ success: false, ...dbResponse });
         }
@@ -211,19 +206,36 @@ const getSubmissionsForAssignment = async (req, res) => {
 const evaluateAndGradeSubmission = async (req, res) => {
     try {
         const staff_id = req.user?.id;
-        const { submission_id, marks_obtained, maximum_marks, rating, teacher_remarks } = req.body;
 
-        if (!submission_id || marks_obtained === undefined || !maximum_marks) {
+        const { submission_id, marks_obtained, teacher_remarks, maximum_marks, rating } = req.body;
+
+        if (!submission_id || marks_obtained === undefined) {
             return res.status(400).json({ success: false, message: 'Missing evaluation credentials.' });
+        }
+
+        let finalMaxMarks;
+
+        if (!maximum_marks || parseFloat(maximum_marks) <= 0) {
+            const [submissionRows] = await db.query(
+                `SELECT maximum_marks FROM tbl_home_work_submissions WHERE submission_id = ?`,
+                [submission_id]
+            );
+
+            if (!submissionRows || submissionRows.length === 0) {
+                return res.status(404).json({ success: false, message: 'Submission record context not found.' });
+            }
+            finalMaxMarks = submissionRows[0].maximum_marks;
+        } else {
+            finalMaxMarks = maximum_marks;
         }
 
         const dbResult = await HomeworkModel.gradeSubmission({
             submission_id: parseInt(submission_id),
             staff_id,
             marks_obtained: parseFloat(marks_obtained),
-            maximum_marks: parseFloat(maximum_marks),
-            rating: rating ? parseInt(rating) : null,
-            teacher_remarks
+            maximum_marks: parseFloat(finalMaxMarks),
+            rating: rating ? parseInt(rating) : null, 
+            teacher_remarks: teacher_remarks || null
         });
 
         return res.status(200).json({ success: true, ...dbResult });
@@ -245,4 +257,4 @@ const getStaffAllocations = async (req, res) => {
     }
 };
 
-module.exports = {getStaffAllocations, addHomeworkAssignment, getStaffAssignments, getStudentAssignedHomework, submitHomeworkOrLateRequest, getStaffPendingLateRequests, updateLateRequestStatus, getSubmissionsForAssignment, evaluateAndGradeSubmission };
+module.exports = { getStaffAllocations, addHomeworkAssignment, getStaffAssignments, getStudentAssignedHomework, submitHomeworkOrLateRequest, getStaffPendingLateRequests, updateLateRequestStatus, getSubmissionsForAssignment, evaluateAndGradeSubmission };
