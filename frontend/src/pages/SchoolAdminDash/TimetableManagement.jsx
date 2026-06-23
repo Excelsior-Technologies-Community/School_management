@@ -303,25 +303,27 @@ const TimetableManagement = ({ schoolId, userContext }) => {
   const totalTimetablePages = Math.ceil(timetable.length / timetableRowsPerPage);
 
   return (
-    <div className='bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-150'>
+    <div className='bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden'>
       {/* Navigation Tabs */}
-      <div className='flex border-b border-slate-200 bg-slate-50/70'>
-        {[
-          { id: 'periods', label: 'School Periods', icon: Clock },
-          { id: 'timetable', label: 'Batch Timetables', icon: Calendar },
-          { id: 'substitutions', label: 'Teacher Substitutions', icon: UserCheck },
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-6 py-3 text-sm font-bold transition-all ${activeTab === tab.id
-              ? 'bg-white text-blue-600 border-t-2 border-t-blue-600'
-              : 'text-slate-500 hover:bg-slate-100'
-              }`}
-          >
-            <tab.icon size={16} /> {tab.label}
-          </button>
-        ))}
+      <div className='flex border-b border-slate-200 bg-slate-50/70 overflow-x-auto whitespace-nowrap snap-x rounded-xl self-start sm:self-center scrollbar-none [-ms-overflow-style:none]  [&::-webkit-scrollbar]:hidden'>
+        <button
+          onClick={() => setActiveTab('periods')}
+          className={`flex items-center gap-2 px-6 py-3 text-sm font-bold border-r border-slate-200 transition-all ${activeTab === 'periods' ? 'bg-white text-blue-600 border-t-2 border-t-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}
+        >
+          <Clock size={16} /> School Periods
+        </button>
+        <button
+          onClick={() => setActiveTab('timetable')}
+          className={`flex items-center gap-2 px-6 py-3 text-sm font-bold border-r border-slate-200 transition-all ${activeTab === 'timetable' ? 'bg-white text-blue-600 border-t-2 border-t-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}
+        >
+          <Calendar size={16} /> Batch Timetables
+        </button>
+        <button
+          onClick={() => setActiveTab('substitutions')}
+          className={`flex items-center gap-2 px-6 py-3 text-sm font-bold border-r border-slate-200 transition-all ${activeTab === 'substitutions' ? 'bg-white text-blue-600 border-t-2 border-t-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}
+        >
+          <UserCheck size={16} /> Teacher Substitutions
+        </button>
       </div>
 
       <div className='p-6'>

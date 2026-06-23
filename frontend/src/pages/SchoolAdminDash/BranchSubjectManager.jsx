@@ -2,23 +2,19 @@ import axios from 'axios';
 import React, { useState, useEffect } from 'react';
 import { backendUrl } from '../../App';
 import { toast } from 'react-toastify';
-import {
-    BookOpen, GitBranch, Hash, Loader2, MapPin, Pencil, Plus,
-    ToggleLeft, ToggleRight, Trash2, Globe, FilePlus, Palette
-} from 'lucide-react';
+import { BookOpen, GitBranch, Loader2, MapPin, Pencil, Plus, ToggleLeft, ToggleRight, Trash2, Globe, FilePlus, Palette, Languages, FileText, ChevronRight, ChevronLeft } from 'lucide-react';
 
 const BranchSubjectManager = ({ getAxiosConfig }) => {
     const [subTab, setSubTab] = useState('branches');
     const [loading, setLoading] = useState(false);
 
     const [branches, setBranches] = useState([]);
-    const [subjects, setSubjects] = useState([]);
-    const [masterSubjects, setMasterSubjects] = useState([]);
-
-    const [subjectMode, setSubjectMode] = useState('select');
-
     const [branchForm, setBranchForm] = useState({ branch_name: '', address: '', status: 'Active' });
     const [editingBranchId, setEditingBranchId] = useState(null);
+
+    const [subjects, setSubjects] = useState([]);
+    const [masterSubjects, setMasterSubjects] = useState([]);
+    const [subjectMode, setSubjectMode] = useState('select');
 
     const [subjectForm, setSubjectForm] = useState({
         master_subject_id: '',
@@ -27,6 +23,17 @@ const BranchSubjectManager = ({ getAxiosConfig }) => {
         custom_type: 'theory',
         description: '',
         color_code: '#3b82f6'
+    });
+
+    const [loadingMediums, setLoadingMediums] = useState(false);
+    const [mediums, setMediums] = useState([]);
+    const [masterMediums, setMasterMediums] = useState([]);
+    const [mediumMode, setMediumMode] = useState('select');
+
+    const [mediumForm, setMediumForm] = useState({
+        master_medium_id: '',
+        custom_name: '',
+        description: ''
     });
 
     const fetchBranches = async () => {
@@ -46,6 +53,7 @@ const BranchSubjectManager = ({ getAxiosConfig }) => {
         try {
             const res = await axios.get(`${backendUrl}/api/academic/subjects`, getAxiosConfig());
             if (res.data.success) setSubjects(res.data.data);
+
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to sync subject records.');
         } finally {
@@ -62,6 +70,27 @@ const BranchSubjectManager = ({ getAxiosConfig }) => {
         }
     };
 
+    const fetchMediums = async () => {
+        setLoadingMediums(true);
+        try {
+            const res = await axios.get(`${backendUrl}/api/medium/school-mediums`, getAxiosConfig());
+            if (res.data.success) setMediums(res.data.data);
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to sync medium records.');
+        } finally {
+            setLoadingMediums(false);
+        }
+    };
+
+    const fetchMasterMediums = async () => {
+        try {
+            const res = await axios.get(`${backendUrl}/api/medium/master-mediums`, getAxiosConfig());
+            if (res.data.success) setMasterMediums(res.data.data);
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to fetch global master mediums.');
+        }
+    };
+
     useEffect(() => {
         if (subTab === 'branches') {
             fetchBranches();
@@ -69,6 +98,10 @@ const BranchSubjectManager = ({ getAxiosConfig }) => {
         if (subTab === 'subjects') {
             fetchSubjects();
             fetchMasterSubjects();
+        }
+        if (subTab === 'mediums') {
+            fetchMediums();
+            fetchMasterMediums();
         }
     }, [subTab]);
 
@@ -127,7 +160,6 @@ const BranchSubjectManager = ({ getAxiosConfig }) => {
     // subjects apis handler
     const handleSubjectSubmit = async (e) => {
         e.preventDefault();
-
         try {
             if (subjectMode === 'select') {
                 if (!subjectForm.master_subject_id) return toast.error('Please select a master subject.');
@@ -204,10 +236,89 @@ const BranchSubjectManager = ({ getAxiosConfig }) => {
         });
     };
 
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 8;
+    // Pagination Calculations for Subjects
+    const totalPages = Math.ceil(subjects.length / itemsPerPage);
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentSubjects = subjects.slice(indexOfFirstItem, indexOfLastItem);
+
+    // Mediums APIs Handler
+    const handleMediumSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            if (mediumMode === 'select') {
+                if (!mediumForm.master_medium_id) return toast.error('Please select a master medium.');
+
+                const payload = {
+                    master_medium_id: mediumForm.master_medium_id,
+                    description: mediumForm.description
+                };
+
+                const res = await axios.post(`${backendUrl}/api/medium/school-mediums/select-master`, payload, getAxiosConfig());
+                if (res.data.success) {
+                    toast.success(res.data.message || 'Master medium allocated successfully.');
+                    resetMediumForm();
+                    fetchMediums();
+                }
+            } else {
+                if (!mediumForm.custom_name.trim()) return toast.error('Custom medium title is mandatory.');
+
+                const payload = {
+                    custom_name: mediumForm.custom_name,
+                    description: mediumForm.description
+                };
+
+                const res = await axios.post(`${backendUrl}/api/medium/school-mediums/request-custom`, payload, getAxiosConfig());
+                if (res.data.success) {
+                    toast.success(res.data.message || 'Custom medium configuration logged.');
+                    resetMediumForm();
+                    fetchMediums();
+                }
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Error processing medium configuration requests.');
+        }
+    };
+
+    const handleToggleMedium = async (schoolMediumId) => {
+        try {
+            const res = await axios.put(`${backendUrl}/api/medium/school-mediums/toggle-status/${schoolMediumId}`, {}, getAxiosConfig());
+            if (res.data.success) {
+                toast.success('Medium execution operational toggle updated.');
+                fetchMediums();
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to switch medium structural state.');
+        }
+    };
+
+    const handleDropMedium = async (schoolMediumId) => {
+        if (!window.confirm('Completely purge this medium assignment from system profiles?')) return;
+        try {
+            const res = await axios.delete(`${backendUrl}/api/medium/school-mediums/${schoolMediumId}`, getAxiosConfig());
+            if (res.data.success) {
+                toast.success('Medium structural record wiped.');
+                fetchMediums();
+            }
+        } catch (error) {
+            toast.error('Error execution cleanup routine for mediums.');
+        }
+    };
+
+    const resetMediumForm = () => {
+        setMediumForm({
+            master_medium_id: '',
+            custom_name: '',
+            description: ''
+        });
+    };
+
     return (
         <div className='bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden'>
             {/* Sub-tab Headings */}
-            <div className='flex border-b border-slate-200 bg-slate-50/70'>
+            <div className='flex border-b border-slate-200 bg-slate-50/70 overflow-x-auto whitespace-nowrap snap-x rounded-xl self-start sm:self-center scrollbar-none [-ms-overflow-style:none]  [&::-webkit-scrollbar]:hidden'>
                 <button
                     onClick={() => setSubTab('branches')}
                     className={`flex items-center gap-2 px-6 py-3 text-sm font-bold border-r border-slate-200 transition-all ${subTab === 'branches' ? 'bg-white text-blue-600 border-t-2 border-t-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}
@@ -220,10 +331,16 @@ const BranchSubjectManager = ({ getAxiosConfig }) => {
                 >
                     <BookOpen size={16} /> Academic Subjects ({subjects.length})
                 </button>
+                <button
+                    onClick={() => setSubTab('mediums')}
+                    className={`flex items-center gap-2 px-6 py-3 text-sm font-bold border-r border-slate-200 transition-all ${subTab === 'mediums' ? 'bg-white text-blue-600 border-t-2 border-t-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}
+                >
+                    <Languages size={16} /> Academic Mediums ({mediums.length})
+                </button>
             </div>
 
             <div className='p-6'>
-                {loading ? (
+                {loading || (subTab === 'mediums' && loadingMediums) ? (
                     <div className='flex justify-center items-center py-12 text-slate-400 gap-2 font-medium'>
                         <Loader2 className='animate-spin text-blue-600' size={20} /> Loading structural maps...
                     </div>
@@ -234,13 +351,12 @@ const BranchSubjectManager = ({ getAxiosConfig }) => {
                         <div className='lg:col-span-1 bg-slate-50 p-5 rounded-xl border border-slate-200 h-fit'>
                             <h3 className='text-sm font-bold text-slate-800 mb-4 flex items-center gap-2'>
                                 <Plus size={16} className="text-blue-600" />
-                                {subTab === 'branches'
-                                    ? (editingBranchId ? 'Modify Branch Parameters' : 'Establish New Branch')
-                                    : (subjectMode === 'select' ? 'Allocate Global Subject' : 'Propose Custom Subject')
-                                }
+                                {subTab === 'branches' && (editingBranchId ? 'Modify Branch Parameters' : 'Establish New Branch')}
+                                {subTab === 'subjects' && (subjectMode === 'select' ? 'Allocate Global Subject' : 'Propose Custom Subject')}
+                                {subTab === 'mediums' && (mediumMode === 'select' ? 'Allocate Global Medium' : 'Propose Custom Medium')}
                             </h3>
 
-                            {subTab === 'branches' ? (
+                            {subTab === 'branches' && (
                                 <form onSubmit={handleBranchSubmit} className='space-y-4'>
                                     <div>
                                         <label className='block text-xs font-bold text-slate-600 mb-1'>Branch Name *</label>
@@ -277,10 +393,10 @@ const BranchSubjectManager = ({ getAxiosConfig }) => {
                                         </button>
                                     </div>
                                 </form>
-                            ) : (
-                                /* NEW DUAL-MODE SUBJECT INTERFACE */
+                            )}
+
+                            {subTab === 'subjects' && (
                                 <form onSubmit={handleSubjectSubmit} className='space-y-4'>
-                                    {/* Action Toggle Selector */}
                                     <div className="grid grid-cols-2 gap-2 bg-slate-200/60 p-1 rounded-lg">
                                         <button
                                             type="button"
@@ -386,7 +502,6 @@ const BranchSubjectManager = ({ getAxiosConfig }) => {
                                                 value={subjectForm.color_code || '#3b82f6'}
                                                 onChange={e => setSubjectForm({ ...subjectForm, color_code: e.target.value })}
                                             />
-
                                             <input
                                                 type="text"
                                                 maxLength={7}
@@ -395,10 +510,7 @@ const BranchSubjectManager = ({ getAxiosConfig }) => {
                                                 value={subjectForm.color_code}
                                                 onChange={e => {
                                                     let val = e.target.value;
-                            
-                                                    if (val && !val.startsWith('#')) {
-                                                        val = '#' + val;
-                                                    }
+                                                    if (val && !val.startsWith('#')) val = '#' + val;
                                                     setSubjectForm({ ...subjectForm, color_code: val });
                                                 }}
                                             />
@@ -412,11 +524,92 @@ const BranchSubjectManager = ({ getAxiosConfig }) => {
                                     </div>
                                 </form>
                             )}
+
+                            {subTab === 'mediums' && (
+                                <form onSubmit={handleMediumSubmit} className='space-y-4'>
+                                    <div className="grid grid-cols-2 gap-2 bg-slate-200/60 p-1 rounded-lg">
+                                        <button
+                                            type="button"
+                                            onClick={() => setMediumMode('select')}
+                                            className={`flex items-center justify-center gap-1.5 py-1.5 text-xs font-bold rounded-md transition-all ${mediumMode === 'select' ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                                        >
+                                            <Globe size={13} /> Select Master
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setMediumMode('custom')}
+                                            className={`flex items-center justify-center gap-1.5 py-1.5 text-xs font-bold rounded-md transition-all ${mediumMode === 'custom' ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                                        >
+                                            <FilePlus size={13} /> Custom Request
+                                        </button>
+                                    </div>
+
+                                    {mediumMode === 'select' ? (
+                                        <div>
+                                            <label className='block text-xs font-bold text-slate-600 mb-1'>Global Master Medium *</label>
+                                            <select
+                                                className='w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white'
+                                                value={mediumForm.master_medium_id}
+                                                onChange={e => setMediumForm({ ...mediumForm, master_medium_id: e.target.value })}
+                                            >
+                                                {masterMediums.filter(mm =>
+                                                    !mediums.some(med => Number(med.master_medium_id) === Number(mm.master_medium_id)) &&
+                                                    (mm.status === 'active' || mm.status === 'Active')
+                                                ).length === 0 ? (
+                                                    <option value="">No available master mediums to allocate</option>
+                                                ) : (
+                                                    <option value="">Select Master Medium Allocation</option>
+                                                )}
+
+                                                {masterMediums
+                                                    .filter(mm =>
+                                                        !mediums.some(med => Number(med.master_medium_id) === Number(mm.master_medium_id)) &&
+                                                        (mm.status === 'active' || mm.status === 'Active')
+                                                    )
+                                                    .map((mm) => (
+                                                        <option key={mm.master_medium_id} value={mm.master_medium_id}>
+                                                            {mm.medium_name}
+                                                        </option>
+                                                    ))
+                                                }
+                                            </select>
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <label className='block text-xs font-bold text-slate-600 mb-1'>Custom Medium Language *</label>
+                                            <input
+                                                type="text"
+                                                className='w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white'
+                                                placeholder="e.g. French Medium"
+                                                value={mediumForm.custom_name}
+                                                onChange={e => setMediumForm({ ...mediumForm, custom_name: e.target.value })}
+                                            />
+                                        </div>
+                                    )}
+
+                                    <div>
+                                        <label className='flex text-xs font-bold text-slate-600 mb-1 items-center gap-1'><FileText size={12} /> Description Remarks</label>
+                                        <input
+                                            type="text"
+                                            className='w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white'
+                                            placeholder="Operational directives or comments..."
+                                            value={mediumForm.description}
+                                            onChange={e => setMediumForm({ ...mediumForm, description: e.target.value })}
+                                        />
+                                    </div>
+
+                                    <div className='flex justify-end gap-2 pt-2'>
+                                        <button type="submit" className='px-4 py-1.5 text-xs font-bold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'>
+                                            {mediumMode === 'select' ? 'Allocate Medium' : 'Submit request'}
+                                        </button>
+                                    </div>
+                                </form>
+                            )}
                         </div>
 
                         {/* DATA DISPLAY GRID TABLES */}
                         <div className='lg:col-span-2 overflow-x-auto'>
-                            {subTab === 'branches' ? (
+                            {subTab === 'branches' && (
                                 <table className='w-full text-left border-collapse'>
                                     <thead>
                                         <tr className='border-b border-slate-200 text-slate-400 font-mono text-[11px] uppercase bg-slate-50'>
@@ -467,56 +660,190 @@ const BranchSubjectManager = ({ getAxiosConfig }) => {
                                         )}
                                     </tbody>
                                 </table>
-                            ) : (
+                            )}
+
+                            {subTab === 'subjects' && (
+                                <>
+                                    <table className="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr className="border-b border-slate-200 text-slate-400 font-mono text-[11px] uppercase bg-slate-50">
+                                                <th className="py-3 px-4">Subject Name</th>
+                                                <th className="py-3 px-4">Subject Code / Type</th>
+                                                <th className="py-3 px-4 text-center">Status</th>
+                                                <th className="py-3 px-4 text-center">Approval Status</th>
+                                                <th className="py-3 px-4 text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100 text-sm">
+                                            {subjects.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={5} className="py-8 text-center text-slate-400 font-medium">
+                                                        No system subjects registered.
+                                                    </td>
+                                                </tr>
+                                            ) : (
+                                                currentSubjects.map(subject => (
+                                                    <tr key={subject.school_subject_id} className="hover:bg-slate-50/50 transition-colors">
+                                                        <td className="py-3.5 px-4 font-bold text-slate-800">
+                                                            <div className="flex items-center gap-2">
+                                                                <span
+                                                                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                                                                    style={{ backgroundColor: subject.color_code || '#3b82f6' }}
+                                                                />
+                                                                {subject.display_name}
+                                                            </div>
+                                                        </td>
+                                                        <td className="py-3.5 px-4 text-slate-500 font-mono text-xs">
+                                                            <div className="font-semibold text-slate-700">
+                                                                {subject.custom_subject_code || subject.master_code || '—'}
+                                                            </div>
+                                                            <div className="text-[11px] text-slate-400 capitalize">
+                                                                {subject.display_type}
+                                                            </div>
+                                                        </td>
+                                                        <td className="py-3.5 px-4 text-center">
+                                                            <span className={`inline-flex items-center uppercase px-2 py-0.5 rounded text-xs font-bold ${subject.status === 'active' ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700'}`}>
+                                                                {subject.status}
+                                                            </span>
+                                                        </td>
+                                                        <td className="py-3.5 px-4 text-center">
+                                                            <span className={`inline-flex items-center uppercase px-2 py-0.5 rounded text-xs font-bold ${subject.approval_status === 'approved' ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700'}`}>
+                                                                {subject.approval_status}
+                                                            </span>
+                                                        </td>
+                                                        <td className="py-3.5 px-4 text-right">
+                                                            <div className="flex justify-end gap-1.5">
+                                                                <button
+                                                                    onClick={() => handleToggleSubject(subject.school_subject_id)}
+                                                                    className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-blue-600 transition-colors"
+                                                                >
+                                                                    {subject.status === 'Active' ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDropSubject(subject.school_subject_id)}
+                                                                    className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-rose-600 transition-colors"
+                                                                >
+                                                                    <Trash2 size={16} />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+
+                                    {/* Pagination Footer Elements inside the tab view */}
+                                    {subjects.length > itemsPerPage && (
+                                        <div className="flex items-center justify-between border-t border-slate-200 bg-white px-4 py-4 sm:px-6 mt-2">
+                                            <div className="flex flex-1 justify-between sm:hidden">
+                                                <button
+                                                    disabled={currentPage === 1}
+                                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                                    className="relative inline-flex items-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                                                >
+                                                    Previous
+                                                </button>
+                                                <button
+                                                    disabled={currentPage === totalPages}
+                                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                                    className="relative ml-3 inline-flex items-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                                                >
+                                                    Next
+                                                </button>
+                                            </div>
+                                            <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                                                <div>
+                                                    <p className="text-xs text-slate-500">
+                                                        Showing <span className="font-semibold text-slate-700">{indexOfFirstItem + 1}</span> to{' '}
+                                                        <span className="font-semibold text-slate-700">
+                                                            {Math.min(indexOfLastItem, subjects.length)}
+                                                        </span>{' '}
+                                                        of <span className="font-semibold text-slate-700">{subjects.length}</span> entries
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <nav className="isolate inline-flex -space-x-px rounded-md shadow-xs" aria-label="Pagination">
+                                                        <button
+                                                            disabled={currentPage === 1}
+                                                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                                            className="relative inline-flex items-center rounded-l-md px-2 py-2 text-slate-400 ring-1 ring-inset ring-slate-200 hover:bg-slate-50 focus:z-20 focus:outline-offset-0 disabled:opacity-40"
+                                                        >
+                                                            <span className="sr-only">Previous</span>
+                                                            <ChevronLeft size={16} />
+                                                        </button>
+
+                                                        {[...Array(totalPages)].map((_, index) => (
+                                                            <button
+                                                                key={index + 1}
+                                                                onClick={() => setCurrentPage(index + 1)}
+                                                                className={`relative inline-flex items-center px-3 py-1.5 text-xs font-semibold focus:z-20 ring-1 ring-inset ring-slate-200 transition-colors ${currentPage === index + 1
+                                                                    ? 'z-10 bg-blue-600 text-white ring-blue-600'
+                                                                    : 'text-slate-600 bg-white hover:bg-slate-50'
+                                                                    }`}
+                                                            >
+                                                                {index + 1}
+                                                            </button>
+                                                        ))}
+
+                                                        <button
+                                                            disabled={currentPage === totalPages}
+                                                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                                            className="relative inline-flex items-center rounded-r-md px-2 py-2 text-slate-400 ring-1 ring-inset ring-slate-200 hover:bg-slate-50 focus:z-20 focus:outline-offset-0 disabled:opacity-40"
+                                                        >
+                                                            <span className="sr-only">Next</span>
+                                                            <ChevronRight size={16} />
+                                                        </button>
+                                                    </nav>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+
+                            {subTab === 'mediums' && (
                                 <table className="w-full text-left border-collapse">
                                     <thead>
                                         <tr className="border-b border-slate-200 text-slate-400 font-mono text-[11px] uppercase bg-slate-50">
-                                            <th className="py-3 px-4">Subject Name</th>
-                                            <th className="py-3 px-4">Subject Code / Type</th>
+                                            <th className="py-3 px-4">Medium Name</th>
                                             <th className="py-3 px-4 text-center">Status</th>
                                             <th className="py-3 px-4 text-center">Approval Status</th>
                                             <th className="py-3 px-4 text-right">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 text-sm">
-                                        {subjects.length === 0 ? (
-                                            <tr><td colSpan={5} className="py-8 text-center text-slate-400 font-medium">No system subjects registered.</td></tr>
+                                        {mediums.length === 0 ? (
+                                            <tr><td colSpan={5} className="py-8 text-center text-slate-400 font-medium">No academic mediums registered.</td></tr>
                                         ) : (
-                                            subjects.map(subject => (
-                                                <tr key={subject.school_subject_id} className="hover:bg-slate-50/50 transition-colors">
-                                                    <td className="py-3.5 px-4 font-bold text-slate-800 flex items-center gap-2">
-                                                        <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: subject.color_code || '#3b82f6' }} />
-                                                        {subject.display_name}
-                                                        {subject.master_subject_id === null && (
-                                                            <span className="text-[10px] tracking-wide px-1.5 py-0.2 bg-purple-50 text-purple-600 border border-purple-200 rounded font-bold">Custom</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="py-3.5 px-4 text-slate-500 font-mono text-xs">
-                                                        <div className="font-semibold text-slate-700">{subject.custom_subject_code || subject.master_code || '—'}</div>
-                                                        <div className="text-[11px] text-slate-400 capitalize">{subject.display_type}</div>
+                                            mediums.map(medium => (
+                                                <tr key={medium.school_medium_id} className="hover:bg-slate-50/50 transition-colors">
+                                                    <td className="py-3.5 px-4 font-bold text-slate-800">
+                                                        <div className="flex items-center gap-2">
+                                                            <Languages size={15} className="text-slate-400" />
+                                                            {medium.display_name}
+                                                        </div>
                                                     </td>
                                                     <td className="py-3.5 px-4 text-center">
-                                                        <span className={`inline-flex items-center uppercase px-2 py-0.5 rounded text-xs font-bold ${subject.status === 'active' ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700'}`}>
-                                                            {subject.status}
+                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs uppercase font-bold ${medium.status === 'Active' || medium.status === 'active' ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700'}`}>
+                                                            {medium.status}
                                                         </span>
                                                     </td>
                                                     <td className="py-3.5 px-4 text-center">
-                                                        <span className={`inline-flex items-center uppercase px-2 py-0.5 rounded text-xs font-bold ${subject.approval_status === 'approved' ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700'}`}>
-                                                            {subject.approval_status}
+                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase ${medium.approval_status === 'approved' ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700'}`}>
+                                                            {medium.approval_status}
                                                         </span>
                                                     </td>
                                                     <td className="py-3.5 px-4 text-right">
                                                         <div className="flex justify-end gap-1.5">
                                                             <button
-                                                                onClick={() => handleToggleSubject(subject.school_subject_id)}
-                                                                title="Toggle Availability Status"
+                                                                onClick={() => handleToggleMedium(medium.school_medium_id)}
                                                                 className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-blue-600 transition-colors"
                                                             >
-                                                                {subject.status === 'active' ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
+                                                                {medium.status === 'Active' || medium.status === 'active' ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
                                                             </button>
                                                             <button
-                                                                onClick={() => handleDropSubject(subject.school_subject_id)}
-                                                                title="Delete Mapping Record"
+                                                                onClick={() => handleDropMedium(medium.school_medium_id)}
                                                                 className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-rose-600 transition-colors"
                                                             >
                                                                 <Trash2 size={16} />

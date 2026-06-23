@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { 
   Building2, LogOut, Users2, UserPlus, Network, Banknote, 
-  Layers, Boxes, GitBranch, Clock, GraduationCap, BookOpen, User
+  Layers, Boxes, GitBranch, Clock, GraduationCap, BookOpen, User, Menu, X
 } from 'lucide-react';
 import axios from 'axios';
 import { backendUrl } from '../App';
@@ -21,11 +21,10 @@ import StaffDashboard from './StaffDashboard';
 const SchoolAdminDash = () => {
   const { user, logoutState } = useAuth();
   
-  // Establish role evaluation criteria
   const isStaff = user?.role === 'staff_member';
 
-  // Set default initial screen based on account role type
   const [activeTab, setActiveTab] = useState(isStaff ? 'homework' : 'directory');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false); // Mobile Menu State Toggle
 
   const [staffList, setStaffList] = useState([]);
   const [payrollList, setPayrollList] = useState([]);
@@ -58,7 +57,7 @@ const SchoolAdminDash = () => {
   });
 
   const fetchStaffDirectory = async () => {
-    if (isStaff) return; // Prevent network overhead calls for restricted profiles
+    if (isStaff) return; 
     setLoading(true);
     try {
       const res = await axios.get(`${backendUrl}/api/school/list-members`, getAxiosConfig());
@@ -284,7 +283,6 @@ const SchoolAdminDash = () => {
   const currentPayrollItems = payrollList.slice(indexOfFirstRow, indexOfLastRow);
   const totalPayrollPages = Math.ceil(payrollList.length / rowsPerPage);
 
-  // Helper template for clean navigation sidebar entries
   const renderSidebarButton = (tabName, label, IconComponent, badge = null) => {
     const isSelected = activeTab === tabName;
     return (
@@ -294,6 +292,7 @@ const SchoolAdminDash = () => {
           if (tabName === 'departments') resetDeptFormState();
           setActiveTab(tabName);
           setCurrentPage(1);
+          setMobileMenuOpen(false); // Close drawer on mobile selection click
         }}
         className={`w-full flex items-center justify-between px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200 group ${
           isSelected 
@@ -319,11 +318,38 @@ const SchoolAdminDash = () => {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
       
-      {/* LEFT SIDEBAR PANEL */}
-      <aside className="w-full md:w-64 bg-slate-900 text-slate-100 flex flex-col border-r border-slate-800 shrink-0 sticky top-0 h-auto md:h-screen z-20">
+      {/* MOBILE TOP BAR (Hidden on Desktop) */}
+      <header className="w-full bg-slate-900 text-slate-100 px-4 py-3 flex items-center justify-between border-b border-slate-800 sticky top-0 z-30 md:hidden">
+        <div className="flex items-center gap-2">
+          <Building2 className="text-blue-400" size={22} />
+          <h1 className="text-sm font-bold tracking-wide text-white uppercase">School Workspace</h1>
+        </div>
+        <button 
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="p-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:text-white transition-colors"
+        >
+          {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
+      </header>
+
+      {/* BACKDROP OVERLAY FOR MOBILE VIEWPORTS */}
+      {mobileMenuOpen && (
+        <div 
+          onClick={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-30 md:hidden animate-fade-in"
+        />
+      )}
+
+      {/* RESPONSIVE LEFT SIDEBAR PANEL */}
+      <aside className={`
+        fixed inset-y-0 left-0 w-64 bg-slate-900 text-slate-100 flex flex-col border-r border-slate-800 shrink-0 z-40
+        transform transition-transform duration-300 ease-in-out
+        md:translate-x-0 md:sticky md:h-screen
+        ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
         
-        {/* Workspace Brand Block */}
-        <div className="px-6 py-5 border-b border-slate-800 flex items-center gap-2.5">
+        {/* Workspace Brand Block (Visible on Desktop only inside sidebar) */}
+        <div className="hidden md:flex px-6 py-5 border-b border-slate-800 items-center gap-2.5">
           <Building2 className="text-blue-400" size={24} />
           <div>
             <h1 className="text-sm font-bold tracking-wide text-white uppercase">School Workspace</h1>
@@ -360,7 +386,7 @@ const SchoolAdminDash = () => {
                 Academic Operations
               </div>
               {renderSidebarButton('departments', 'Departments', Network, departmentList.length)}
-              {renderSidebarButton('branches-subjects', 'Branches & Subjects', GitBranch)}
+              {renderSidebarButton('branches-subjects-mediums', 'Branches,Subjects & Mediums', GitBranch)}
               {renderSidebarButton('batches-sections', 'Sections & Batches', Boxes)}
               {renderSidebarButton('timetable', 'Timetable Management', Clock)}
               {renderSidebarButton('students', 'Students', GraduationCap)}
@@ -383,12 +409,10 @@ const SchoolAdminDash = () => {
       <main className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
         <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto flex-1">
 
-          {/* Render Homework UI Component view slot */}
           {activeTab === 'homework' && (
             <StaffDashboard user={user} logoutState={logoutState} />
           )}
 
-          {/* Render Remaining Sub-Modules conditionally based on active tabs */}
           {activeTab === 'directory' && !isStaff && (
             <StaffDirectory
               staffList={staffList}
@@ -451,7 +475,7 @@ const SchoolAdminDash = () => {
             />
           )}
 
-          {activeTab === 'branches-subjects' && !isStaff && (
+          {activeTab === 'branches-subjects-mediums' && !isStaff && (
             <BranchSubjectManager getAxiosConfig={getAxiosConfig} />
           )}
 
