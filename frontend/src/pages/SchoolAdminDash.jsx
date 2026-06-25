@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { 
   Building2, LogOut, Users2, UserPlus, Network, Banknote, 
-  Layers, Boxes, GitBranch, Clock, GraduationCap, BookOpen, User, Menu, X
+  Layers, Boxes, GitBranch, Clock, GraduationCap, BookOpen, User, Menu, X,
+  School
 } from 'lucide-react';
 import axios from 'axios';
 import { backendUrl } from '../App';
@@ -386,7 +387,7 @@ const SchoolAdminDash = () => {
                 Academic Operations
               </div>
               {renderSidebarButton('departments', 'Departments', Network, departmentList.length)}
-              {renderSidebarButton('branches-subjects-mediums', 'Branches,Subjects & Mediums', GitBranch)}
+              {renderSidebarButton('branches-subjects-mediums', 'Academics', School)}
               {renderSidebarButton('batches-sections', 'Sections & Batches', Boxes)}
               {renderSidebarButton('timetable', 'Timetable Management', Clock)}
               {renderSidebarButton('students', 'Students', GraduationCap)}

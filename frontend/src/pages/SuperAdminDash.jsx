@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { School, UserPlus, LogOut, List, Layers, Tag, Languages, User, Menu, X, ShieldAlert } from 'lucide-react';
+import { School, UserPlus, LogOut, List, Layers, Tag, Languages, User, Menu, X, ShieldAlert, Columns4 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
@@ -9,6 +9,7 @@ import SchoolDeployment from './SuperAdminDash/SchoolDeployment';
 import GlobalClassManager from './SuperAdminDash/GlobalClassManager';
 import MasterSubjectManager from './SuperAdminDash/MasterSubjectManager';
 import MasterMediumManager from './SuperAdminDash/MasterMediumManager';
+import MasterBoardManager from './SuperAdminDash/MasterBoardManager';
 import { backendUrl } from '../App';
 
 const SuperAdminDash = () => {
@@ -28,7 +29,8 @@ const SuperAdminDash = () => {
     schools: 0,
     classes: 0,
     subjects: 0,
-    mediums: 0
+    mediums: 0,
+    boards: 0
   });
 
   const getAxiosConfig = () => ({
@@ -56,16 +58,18 @@ const SuperAdminDash = () => {
 
   const fetchTotals = async () => {
     try {
-      const [classes, subjects, mediums] = await Promise.all([
+      const [classes, subjects, mediums, boards] = await Promise.all([
         axios.get(backendUrl + '/api/batch/global-classes', getAxiosConfig()),
         axios.get(backendUrl + '/api/academic/master-subjects', getAxiosConfig()),
         axios.get(backendUrl + '/api/medium/master-mediums', getAxiosConfig()),
+        axios.get(backendUrl + '/api/board/master-boards', getAxiosConfig())
       ]);
       setTotals({
         schools: schoolsDirectory.length,
         classes: classes.data.success ? classes.data.data.length : 0,
         subjects: subjects.data.success ? subjects.data.data.length : 0,
         mediums: mediums.data.success ? mediums.data.data.length : 0,
+        boards: boards.data.success ? boards.data.data.length : 0
       });
     } catch (e) {
       console.error("Failed to fetch counts");
@@ -192,6 +196,7 @@ const SuperAdminDash = () => {
           {renderSidebarButton('classes', 'Global Classes Master', Layers, totals.classes)}
           {renderSidebarButton('subjects', 'Master Subject Pool', Tag, totals.subjects)}
           {renderSidebarButton('mediums', 'Master Medium Pool', Languages, totals.mediums)}
+          {renderSidebarButton('boards', 'Master Board Pool', Columns4, totals.boards)}
         </nav>
 
         <div className="p-3 border-t border-slate-800 bg-slate-950/30">
@@ -243,6 +248,12 @@ const SuperAdminDash = () => {
 
           {activeTab === 'mediums' && (
             <MasterMediumManager
+              getAxiosConfig={getAxiosConfig}
+            />
+          )}
+
+          {activeTab === 'boards' && (
+            <MasterBoardManager
               getAxiosConfig={getAxiosConfig}
             />
           )}
