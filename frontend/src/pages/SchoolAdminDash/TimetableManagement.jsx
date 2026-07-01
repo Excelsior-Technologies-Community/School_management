@@ -509,7 +509,7 @@ const TimetableManagement = ({ schoolId, userContext }) => {
                       .filter(b => String(b.branch_id) === String(selectedBranchId))
                       .map(b => (
                         <option key={b.batch_id} value={b.batch_id}>
-                          {b.class_name} - {b.section_name} ({b.academic_year})
+                          {b.class_name} - {b.section_name} ({b.medium_name} - {b.board_name})
                         </option>
                       ))
                     }

@@ -3,6 +3,7 @@ import { backendUrl } from '../../App';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { Boxes, ChevronLeft, ChevronRight, Edit3, PlusCircle, RefreshCw, Trash2, XCircle, ToggleLeft, Layers } from 'lucide-react';
+import { data } from 'react-router-dom';
 
 const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses, fetchSchoolClasses }) => {
     const [batches, setBatches] = useState([]);
@@ -36,6 +37,12 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses, fetchSchoolC
     const [globalClasses, setGlobalClasses] = useState([]);
     const [submitting, setSubmitting] = useState(false);
 
+    // Mediums and Boards States
+    const [schoolMediums, setSchoolMediums] = useState([]);
+    const [schoolBoards, setSchoolBoards] = useState([]);
+    const [selectedMediumId, setSelectedMediumId] = useState('');
+    const [selectedBoardId, setSelectedBoardId] = useState('');
+
     const fetchBranches = async () => {
         try {
             const res = await axios.get(`${backendUrl}/api/academic/branches`, getAxiosConfig());
@@ -59,13 +66,33 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses, fetchSchoolC
         }
     };
 
+    const fetchMediumsAndBoards = async () => {
+        try {
+            const [resMediums, resBoards] = await Promise.all([
+                axios.get(`${backendUrl}/api/medium/school-mediums`, getAxiosConfig()),
+                axios.get(`${backendUrl}/api/board/school-boards`, getAxiosConfig())
+            ]);
+            if (resMediums.data.success) setSchoolMediums(resMediums.data.data); 
+            if (resBoards.data.success) setSchoolBoards(resBoards.data.data);
+            
+        } catch (error) {
+            toast.error('Failed to sync school mediums or boards configuration.');
+        }
+    };
+
+    useEffect(() => {
+        fetchGlobalClasses();
+        fetchBranches();
+        fetchMediumsAndBoards(); 
+        syncDataGrid();
+    }, []);
+
     useEffect(() => {
         fetchGlobalClasses();
         fetchBranches();
         syncDataGrid();
     }, []);
 
-    // Reset pagination headers when array lengths change
     useEffect(() => {
         setCurrentClassPage(1);
     }, [activeSchoolClasses.length]);
@@ -187,17 +214,20 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses, fetchSchoolC
         setEditingSectionId(null);
     };
 
+
     // BATCHES CRUD LOGIC
     const handleBatchSubmit = async (e) => {
         e.preventDefault();
-        if (!selectedBranchId || !selectedClassId || !selectedSectionId || !academicYear) {
-            return toast.error('Please fill all the fields.');
+        if (!selectedBranchId || !selectedClassId || !selectedSectionId || !selectedMediumId || !selectedBoardId || !academicYear) {
+            return toast.error('Please fill all fields, including Medium and Board options.');
         }
 
         const payload = {
             branch_id: selectedBranchId,
             school_class_id: selectedClassId,
             section_id: selectedSectionId,
+            school_medium_id: selectedMediumId,
+            school_board_id: selectedBoardId,   
             academic_year: academicYear
         };
 
@@ -220,6 +250,29 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses, fetchSchoolC
         } catch (error) {
             toast.error(error.response?.data?.message || 'Error processing structural batch parameters.');
         }
+    };
+
+    const startEditBatch = (row) => {
+        setSelectedBranchId(row.branch_id || '');
+        setSelectedClassId(row.school_class_id || '');
+        setSelectedSectionId(row.section_id || '');
+        setSelectedMediumId(row.school_medium_id || ''); 
+        setSelectedBoardId(row.school_board_id || '');  
+        setAcademicYear(row.academic_year || '');
+        setEditingBatchId(row.batch_id);
+        setIsEditingBatch(true);
+        setCurrentBatchPage(1);
+    };
+
+    const resetBatchForm = () => {
+        setSelectedBranchId('');
+        setSelectedClassId('');
+        setSelectedSectionId('');
+        setSelectedMediumId(''); 
+        setSelectedBoardId(''); 
+        setAcademicYear('');
+        setEditingBatchId(null);
+        setIsEditingBatch(false);
     };
 
     const handleRemoveBatch = async (id) => {
@@ -247,23 +300,6 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses, fetchSchoolC
         }
     };
 
-    const startEditBatch = (row) => {
-        setSelectedBranchId(row.branch_id || ''); // Bind branch constraint to editing scope
-        setSelectedClassId(row.school_class_id || '');
-        setSelectedSectionId(row.section_id || '');
-        setAcademicYear(row.academic_year || '');
-        setEditingBatchId(row.batch_id);
-        setIsEditingBatch(true);
-    };
-
-    const resetBatchForm = () => {
-        setSelectedBranchId(''); // Flush selection on reset actions
-        setSelectedClassId('');
-        setSelectedSectionId('');
-        setAcademicYear('');
-        setEditingBatchId(null);
-        setIsEditingBatch(false);
-    };
 
     // Pagination calculations
     const indexOfClassLastRow = currentClassPage * rowsPerPage;
@@ -276,10 +312,13 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses, fetchSchoolC
     const displaySectionRows = sections.slice(indexOfSectionFirstRow, indexOfSectionLastRow);
     const totalSectionPages = Math.ceil(sections.length / rowsPerPage);
 
-    const indexOfBatchLastRow = currentBatchPage * rowsPerPage;
-    const indexOfBatchFirstRow = indexOfBatchLastRow - rowsPerPage;
+
+    const batchRowsPerPage = 12;
+    const indexOfBatchLastRow = currentBatchPage * batchRowsPerPage;
+    const indexOfBatchFirstRow = indexOfBatchLastRow - batchRowsPerPage;
     const displayBatchRows = batches.slice(indexOfBatchFirstRow, indexOfBatchLastRow);
-    const totalBatchPages = Math.ceil(batches.length / rowsPerPage);
+    const totalBatchPages = Math.ceil(batches.length / batchRowsPerPage);
+    
 
     return (
         <div className='space-y-8'>
@@ -534,7 +573,6 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses, fetchSchoolC
                         {isEditingBatch ? 'Update Batch' : 'Create Batch'}
                     </h3>
                     <form onSubmit={handleBatchSubmit} className='space-y-4'>
-                        {/* Added Branch Select Control Dropdown field component element view */}
                         <div>
                             <label className="text-xs font-bold text-slate-500">Branch</label>
                             <select
@@ -577,6 +615,41 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses, fetchSchoolC
                                 ))}
                             </select>
                         </div>
+
+                        <div>
+                            <label className="text-xs font-bold text-slate-500">Medium Track</label>
+                            <select
+                                className="w-full border p-2 mt-1.5 bg-white rounded-lg outline-none text-sm focus:border-blue-500 shadow-sm"
+                                value={selectedMediumId}
+                                onChange={e => setSelectedMediumId(e.target.value)}
+                                required
+                            >
+                                <option value="">-- Choose Medium --</option>
+                                {schoolMediums.map(m => (
+                                    <option key={m.school_medium_id} value={m.school_medium_id}>
+                                        {m.display_name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="text-xs font-bold text-slate-500">Affiliated Board</label>
+                            <select
+                                className="w-full border p-2 mt-1.5 bg-white rounded-lg outline-none text-sm focus:border-blue-500 shadow-sm"
+                                value={selectedBoardId}
+                                onChange={e => setSelectedBoardId(e.target.value)}
+                                required
+                            >
+                                <option value="">-- Choose Board --</option>
+                                {schoolBoards.map(board => (
+                                    <option key={board.school_board_id} value={board.school_board_id}>
+                                        {board.display_name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
                         <div>
                             <label className="text-xs font-bold text-slate-500">Academic Year</label>
                             <input
@@ -601,6 +674,7 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses, fetchSchoolC
                     </form>
                 </div>
 
+                {/* Batches Table */}
                 <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                     <div className="p-4 bg-slate-50/50 border-b border-slate-100 flex justify-between items-center">
                         <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5"><Boxes size={14} /> Active Batches</h3>
@@ -612,29 +686,31 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses, fetchSchoolC
                         <table className="w-full text-left border-collapse text-xs">
                             <thead>
                                 <tr className="bg-slate-100/50 border-b border-slate-200 text-slate-500 font-bold uppercase">
-                                    <th className="py-2.5 px-5 text-center">ID</th>
-                                    <th className="py-2.5 px-4">Branch</th>{/* Added Branch Data Header */}
-                                    <th className="py-2.5 px-4">Class</th>
-                                    <th className="py-2.5 px-4">Section</th>
-                                    <th className="py-2.5 px-4">Academic Year</th>
-                                    <th className='py-2.5 px-4'>Status</th>
-                                    <th className="py-2.5 px-4 text-center w-28">Actions</th>
+                                    <th className="py-2.5 px-3 text-center">ID</th>
+                                    <th className="py-2.5 px-3">Branch</th>
+                                    <th className="py-2.5 px-3">Class Allocation</th>
+                                    <th className="py-2.5 px-3">Medium</th> 
+                                    <th className="py-2.5 px-3">Board</th> 
+                                    <th className="py-2.5 px-3">Academic Year</th>
+                                    <th className='py-2.5 px-3'>Status</th>
+                                    <th className="py-2.5 px-3 text-center w-24">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 text-slate-600">
                                 {displayBatchRows.length === 0 ? (
                                     <tr>
-                                        <td colSpan="7" className="text-center py-6 text-slate-400 font-medium">No batches created yet.</td>
+                                        <td colSpan="8" className="text-center py-6 text-slate-400 font-medium">No batches created yet.</td>
                                     </tr>
                                 ) : (
                                     displayBatchRows.map(row => (
                                         <tr key={row.batch_id} className="hover:bg-slate-50/50">
-                                            <td className="py-2.5 px-5 text-center font-mono font-bold text-slate-400 bg-slate-50/20">{row.batch_id}</td>
-                                            <td className="py-2.5 px-4 font-semibold text-slate-700">{row.branch_name}</td>{/* Render Branch Row Data */}
-                                            <td className="py-2.5 px-4 font-bold text-slate-800">{row.class_name}</td>
-                                            <td className="py-2.5 px-4 font-medium text-slate-600">{row.section_name}</td>
-                                            <td className="py-2.5 px-4 text-slate-600">{row.academic_year}</td>
-                                            <td className='py-2.5 px-4 vertical-middle'>
+                                            <td className="py-2.5 px-3 text-center font-mono font-bold text-slate-400 bg-slate-50/20">{row.batch_id}</td>
+                                            <td className="py-2.5 px-3 font-semibold text-slate-700">{row.branch_name}</td>
+                                            <td className="py-2.5 px-3 font-bold text-slate-800">{row.class_name} - <span className="font-medium text-slate-500">{row.section_name}</span></td>
+                                            <td className="py-2.5 px-3 font-medium text-slate-800">{row.medium_name}</td> 
+                                            <td className="py-2.5 px-3 font-medium text-slate-800">{row.board_name}</td> 
+                                            <td className="py-2.5 px-3 text-slate-600">{row.academic_year}</td>
+                                            <td className='py-2.5 px-3 vertical-middle'>
                                                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase ${row.status?.toLowerCase() === 'active'
                                                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                                     : 'bg-slate-100 text-slate-600 border border-slate-200'
@@ -642,7 +718,7 @@ const BatchSectionManager = ({ getAxiosConfig, activeSchoolClasses, fetchSchoolC
                                                     {row.status}
                                                 </span>
                                             </td>
-                                            <td className="py-2.5 px-4 text-center">
+                                            <td className="py-2.5 px-3 text-center">
                                                 <div className="flex justify-center gap-1">
                                                     <button
                                                         onClick={() => handleToggleBatchStatus(row.batch_id)}

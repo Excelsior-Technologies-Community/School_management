@@ -34,7 +34,6 @@ const StudentManagement = () => {
             ]);
 
             if (batchesRes.data.success) setBatches(batchesRes.data.data || []);
-            
             if (studentsRes.data.success) {
                 setStudents(studentsRes.data.data || []);
             }
@@ -46,7 +45,6 @@ const StudentManagement = () => {
         }
     };
 
-    // 2. Clear out alert bars automatically after a delay
     const showFeedback = (type, text) => {
         setStatus({ type, text });
         setTimeout(() => setStatus({ type: '', text: '' }), 5000);
@@ -89,7 +87,6 @@ const StudentManagement = () => {
     return (
         <div className="p-6 max-w-7xl mx-auto space-y-6">
 
-            {/* Dynamic Alert System Banners */}
             {status.text && (
                 <div className={`flex items-center gap-3 p-4 rounded-xl border animate-fade-in ${
                     status.type === 'success'
@@ -101,10 +98,8 @@ const StudentManagement = () => {
                 </div>
             )}
 
-            {/* Main Container Layout split on large monitors */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-14 gap-6 items-start">
 
-                {/* Left Hand: Registration Entry Form Box */}
                 <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 lg:col-span-5 space-y-6">
                     <div>
                         <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
@@ -113,7 +108,6 @@ const StudentManagement = () => {
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        {/* Input Name */}
                         <div className="space-y-1.5">
                             <label className="text-xs font-semibold text-slate-600">Full Name</label>
                             <div className="relative">
@@ -132,7 +126,6 @@ const StudentManagement = () => {
                             </div>
                         </div>
 
-                        {/* Input Email Address */}
                         <div className="space-y-1.5">
                             <label className="text-xs font-semibold text-slate-600">Institutional Email Address</label>
                             <div className="relative">
@@ -151,7 +144,6 @@ const StudentManagement = () => {
                             </div>
                         </div>
 
-                        {/* Input Unique Registration ID */}
                         <div className="space-y-1.5">
                             <label className="text-xs font-semibold text-slate-600">Official Enrollment Code / Roll ID</label>
                             <div className="relative">
@@ -170,7 +162,6 @@ const StudentManagement = () => {
                             </div>
                         </div>
 
-                        {/* Input Batch Mapping Dropdown */}
                         <div className="space-y-1.5">
                             <label className="text-xs font-semibold text-slate-600">Assigned Academic Batch</label>
                             <div className="relative">
@@ -187,14 +178,13 @@ const StudentManagement = () => {
                                     <option value="" disabled>-- Choose Active Target Batch --</option>
                                     {batches.map((batch) => (
                                         <option key={batch.batch_id} value={batch.batch_id}>
-                                            {batch.batch_name || `Batch ID: ${batch.batch_id} (${batch.academic_year || 'Current Year'})`}
+                                            {batch.class_name} - {batch.section_name} ({batch.medium_name} - {batch.board_name})
                                         </option>
                                     ))}
                                 </select>
                             </div>
                         </div>
 
-                        {/* Action Form Confirmation Action Button */}
                         <button
                             type="submit"
                             disabled={loading || fetchingData}
@@ -209,8 +199,8 @@ const StudentManagement = () => {
                     </form>
                 </div>
 
-                {/* Right Hand: Workspace Real-Time Roster View */}
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 lg:col-span-7 space-y-4">
+
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 lg:col-span-9 space-y-4">
                     <div className="flex items-center justify-between">
                         <div>
                             <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
@@ -257,7 +247,6 @@ const StudentManagement = () => {
                                                 </td>
                                                 <td className="py-3 px-4 font-mono text-xs">{student.enrollment_no}</td>
                                                 
-                                                {/* ADDED CELL: Render dynamic batch layout mapping details */}
                                                 <td className="py-3 px-4 text-xs text-slate-500">
                                                     {student.batch_name ? (
                                                         <div>
@@ -270,7 +259,6 @@ const StudentManagement = () => {
                                                 </td>
 
                                                 <td className="py-3 px-4">
-                                                    {/* FIXED: Reading evaluation token dynamically via computed is_activated flag */}
                                                     <span className={`inline-flex items-center text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
                                                         student.is_activated === 1
                                                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'

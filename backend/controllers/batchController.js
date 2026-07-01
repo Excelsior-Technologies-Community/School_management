@@ -116,17 +116,16 @@ const removeSection = async (req, res) => {
 }
 
 
-
 const addBatch = async (req, res) => {
     try {
-        const { branch_id, school_class_id, section_id, academic_year } = req.body;
+        const { branch_id, school_class_id, section_id, school_medium_id, school_board_id, academic_year } = req.body;
         const school_id = req.user?.school_id;
 
-        if (!branch_id || !school_class_id || !section_id || !academic_year) {
-            return res.status(400).json({ success: false, message: 'Missing field values.' });
+        if (!branch_id || !school_class_id || !section_id || !school_medium_id || !school_board_id || !academic_year) {
+            return res.status(400).json({ success: false, message: 'Missing required fields including medium and board tracks.' });
         }
 
-        const data = await BatchModel.createBatch(school_id, branch_id, school_class_id, section_id, academic_year);
+        const data = await BatchModel.createBatch(school_id, branch_id, school_class_id, section_id, school_medium_id, school_board_id, academic_year);
         return res.status(201).json({ success: true, message: data.message, batch_id: data.batch_id });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
@@ -147,14 +146,14 @@ const listSchoolBatches = async (req, res) => {
 const updateSchoolBatch = async (req, res) => {
     try {
         const { id } = req.params;
-        const { branch_id, school_class_id, section_id, academic_year } = req.body;
+        const { branch_id, school_class_id, section_id, school_medium_id, school_board_id, academic_year } = req.body;
         const school_id = req.user?.school_id;
 
-        if (!branch_id || !school_class_id || !section_id || !academic_year) {
-            return res.status(400).json({ success: false, message: 'Missing field values for updates.' });
+        if (!branch_id || !school_class_id || !section_id || !school_medium_id || !school_board_id || !academic_year) {
+            return res.status(400).json({ success: false, message: 'Missing field parameters for batch update execution.' });
         }
 
-        const data = await BatchModel.updateBatch(id, school_id, branch_id, school_class_id, section_id, academic_year);
+        const data = await BatchModel.updateBatch(id, school_id, branch_id, school_class_id, section_id, school_medium_id, school_board_id, academic_year);
         return res.status(200).json({ success: true, message: data.message });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });

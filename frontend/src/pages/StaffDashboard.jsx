@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Upload, FileText, X, AlertCircle, CheckCircle2, Loader2, BookOpen, Calendar, ClipboardList, Eye, Plus, Clock, Award, ShieldAlert, User, Check, ChevronRight, MapPin, RefreshCw } from 'lucide-react';
 import { backendUrl } from '../App';
 import { toast } from 'react-toastify';
+import { data } from 'react-router-dom';
 
 const getAxiosConfig = () => {
   const token = localStorage.getItem('token');
@@ -61,18 +62,19 @@ const StaffDashboard = ({ logoutState }) => {
       ]);
 
       if (assignmentsRes.data.success) setAssignments(assignmentsRes.data.data || []);
+      
       if (lateRequestsRes.data.success) setLateRequests(lateRequestsRes.data.data || []);
 
       if (allocationsRes.data.success) {
         const rawAllocations = allocationsRes.data.data || [];
         setAllocations(rawAllocations);
-
+      
         const batchMap = new Map();
         rawAllocations.forEach(item => {
           if (!batchMap.has(item.batch_id)) {
             batchMap.set(item.batch_id, {
               batch_id: item.batch_id,
-              label: `${item.class_name} - ${item.section_name} (${item.academic_year})`
+              label: `${item.class_name} - ${item.section_name} (${item.medium_name} - ${item.board_name})`
             });
           }
         });
@@ -89,6 +91,7 @@ const StaffDashboard = ({ logoutState }) => {
     try {
       setTimetableLoading(true);
       const res = await axios.get(`${backendUrl}/api/timetable/staff-timetable`, getAxiosConfig());
+      
       if (res.data.success) {
         setTimetable(res.data.data || []);
       }
@@ -232,6 +235,7 @@ const StaffDashboard = ({ logoutState }) => {
       toast.error(error.response?.data?.message);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">

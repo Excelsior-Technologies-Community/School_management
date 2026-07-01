@@ -16,7 +16,7 @@ router.patch('/grade-submission', verifyToken, restrictTo('staff_member'), evalu
 
 router.get('/student-list', verifyToken, restrictTo('student'), getStudentAssignedHomework);
 router.post('/submit', verifyToken, restrictTo('student'), upload.single('attachmentFile'), submitHomeworkOrLateRequest);
-// to allow staff only their assigned bathes and subjects selection
+// to allow staff only their assigned batches and subjects selection
 router.get('/allocations', verifyToken, restrictTo('staff_member'), getStaffAllocations);
 
 module.exports = router;
