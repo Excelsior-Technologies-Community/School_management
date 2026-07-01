@@ -11,7 +11,7 @@ router.delete('/departments/remove/:id', verifyToken, restrictTo('school_admin')
 
 // staff managing routes
 router.post('/add-member', verifyToken, restrictTo('school_admin'), addMember)
-router.get('/list-members', verifyToken, restrictTo('school_admin'), listMembers)
+router.get('/list-members', verifyToken, restrictTo('school_admin','staff_member'), listMembers)
 router.put('/update-member', verifyToken, restrictTo('school_admin'), updateMember)
 router.delete('/remove/:staffId', verifyToken, restrictTo('school_admin'), removeMember)
 

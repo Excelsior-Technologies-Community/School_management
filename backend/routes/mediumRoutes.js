@@ -16,7 +16,7 @@ router.put('/master-mediums/toggle-status/:id', verifyToken, restrictTo('super_a
 router.post('/master-mediums/review', verifyToken, restrictTo('super_admin'), reviewSchoolMediumRequest);
 
 // school medium routes
-router.get('/school-mediums', verifyToken, restrictTo('school_admin'), getMediums);
+router.get('/school-mediums', verifyToken, restrictTo('school_admin','staff_member'), getMediums);
 router.post('/school-mediums/select-master', verifyToken, restrictTo('school_admin'), selectMasterMedium);
 router.post('/school-mediums/request-custom', verifyToken, restrictTo('school_admin'), requestCustomMedium);
 router.put('/school-mediums/toggle-status/:id', verifyToken, restrictTo('school_admin'), toggleMediumStatus);

@@ -13,7 +13,7 @@ router.delete('/branches/:id', verifyToken, restrictTo('school_admin'), deleteBr
 router.put('/branches/toggle-status/:id', verifyToken, restrictTo('school_admin'), toggleBranchStatus)
 
 // school subjects routes
-router.get('/subjects', verifyToken, restrictTo('school_admin'), getSubjects);
+router.get('/subjects', verifyToken, restrictTo('school_admin','staff_member'), getSubjects);
 router.post('/subjects/select-master', verifyToken, restrictTo('school_admin'), selectMasterSubject);
 router.post('/subjects/request-custom', verifyToken, restrictTo('school_admin'), requestCustomSubject);
 router.put('/subjects/toggle-status/:id', verifyToken, restrictTo('school_admin'), toggleSubjectStatus);

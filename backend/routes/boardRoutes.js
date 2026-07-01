@@ -16,7 +16,7 @@ router.delete('/master-boards/:id', verifyToken, restrictTo('super_admin'), dele
 router.put('/master-boards/toggle-status/:id', verifyToken, restrictTo('super_admin'), toggleMasterBoardStatus)
 router.post('/master-boards/review', verifyToken, restrictTo('super_admin'), reviewSchoolBoardRequest)
 
-router.get('/school-boards', verifyToken, restrictTo('school_admin'), getSchoolBoards)
+router.get('/school-boards', verifyToken, restrictTo('school_admin','staff_member'), getSchoolBoards)
 router.post('/school-boards/select-master', verifyToken, restrictTo('school_admin'), selectMasterBoard)
 router.post('/school-boards/request-custom', verifyToken, restrictTo('school_admin'), upload.single('board_logo'), requestCustomBoard)
 router.put('/school-boards/toggle-status/:id', verifyToken, restrictTo('school_admin'), toggleSchoolBoardStatus)
