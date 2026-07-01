@@ -2,7 +2,9 @@ import axios from 'axios';
 import React, { useEffect, useState } from 'react'
 import { toast } from 'react-toastify';
 import { backendUrl } from '../../App';
-import { Calendar, Edit, FileText, Layers, Loader2, RefreshCw, ToggleLeft, ToggleRight, Trash2 } from 'lucide-react';
+import { BookOpen, Calendar, Edit, FileText, Layers, Loader2, RefreshCw, ToggleLeft, ToggleRight, Trash2 } from 'lucide-react';
+import ExamSubjectManagement from './ExamSubjectManagement';
+import ExamTimetableManagement from './ExamTimetableManagement';
 
 const ExamManagement = ({ getAxiosConfig }) => {
 
@@ -12,6 +14,10 @@ const ExamManagement = ({ getAxiosConfig }) => {
     const [classes, setClasses] = useState([]);
     const [loading, setLoading] = useState(false);
     const [toggleLoadingId, setToggleLoadingId] = useState(null);
+
+    const [selectedExamForSubjects, setSelectedExamForSubjects] = useState(null);
+
+    const [selectedExamForTimetable, setSelectedExamForTimetable] = useState(null);
 
     // Form states
     const [isEditing, setIsEditing] = useState(false);
@@ -176,6 +182,26 @@ const ExamManagement = ({ getAxiosConfig }) => {
             toast.error(err.response?.data?.message || 'Error executing absolute file purge.');
         }
     };
+
+    if (selectedExamForSubjects) {
+        return (
+            <ExamSubjectManagement
+                exam={selectedExamForSubjects}
+                onBack={() => setSelectedExamForSubjects(null)}
+                getAxiosConfig={getAxiosConfig}
+            />
+        );
+    }
+
+    if (selectedExamForTimetable) {
+        return (
+            <ExamTimetableManagement
+                exam={selectedExamForTimetable}
+                onBack={() => setSelectedExamForTimetable(null)}
+                getAxiosConfig={getAxiosConfig}
+            />
+        );
+    }
 
 
     return (
@@ -401,6 +427,20 @@ const ExamManagement = ({ getAxiosConfig }) => {
                                             </td>
                                             <td className='py-4 px-5 text-right'>
                                                 <div className='flex items-center justify-end gap-1.5'>
+                                                    <button
+                                                        onClick={() => setSelectedExamForSubjects(row)}
+                                                        className="p-1.5 rounded-lg text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-all"
+                                                        title="Manage Subjects Criteria "
+                                                    >
+                                                        <BookOpen size={15} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setSelectedExamForTimetable(row)}
+                                                        className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
+                                                        title="Manage Exam Timetable"
+                                                    >
+                                                        <Calendar size={15} />
+                                                    </button>
                                                     <button
                                                         onClick={() => handleToggleStatus(row.exam_id, row.status)}
                                                         disabled={toggleLoadingId === row.exam_id}

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { 
-  Building2, LogOut, Users2, UserPlus, Network, Banknote, 
+import {
+  Building2, LogOut, Users2, UserPlus, Network, Banknote,
   Layers, Boxes, GitBranch, Clock, GraduationCap, BookOpen, User, Menu, X,
-  School
+  School,
+  Calendar
 } from 'lucide-react';
 import axios from 'axios';
 import { backendUrl } from '../App';
@@ -18,10 +19,11 @@ import BranchSubjectManager from './SchoolAdminDash/BranchSubjectManager';
 import TimetableManagement from './SchoolAdminDash/TimetableManagement';
 import StudentManagement from './SchoolAdminDash/StudentManagement';
 import StaffDashboard from './StaffDashboard';
+import ExamManagement from './SchoolAdminDash/ExamManagement';
 
 const SchoolAdminDash = () => {
   const { user, logoutState } = useAuth();
-  
+
   const isStaff = user?.role === 'staff_member';
 
   const [activeTab, setActiveTab] = useState(isStaff ? 'homework' : 'directory');
@@ -58,7 +60,7 @@ const SchoolAdminDash = () => {
   });
 
   const fetchStaffDirectory = async () => {
-    if (isStaff) return; 
+    if (isStaff) return;
     setLoading(true);
     try {
       const res = await axios.get(`${backendUrl}/api/school/list-members`, getAxiosConfig());
@@ -295,20 +297,18 @@ const SchoolAdminDash = () => {
           setCurrentPage(1);
           setMobileMenuOpen(false); // Close drawer on mobile selection click
         }}
-        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200 group ${
-          isSelected 
-            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10' 
-            : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
-        }`}
+        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200 group ${isSelected
+          ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
+          : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+          }`}
       >
         <div className="flex items-center gap-3">
           <IconComponent size={18} className={isSelected ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'} />
           <span>{label}</span>
         </div>
         {badge !== null && (
-          <span className={`text-[11px] px-2 py-0.5 rounded-md font-mono ${
-            isSelected ? 'bg-blue-700 text-blue-100' : 'bg-slate-800 text-slate-400'
-          }`}>
+          <span className={`text-[11px] px-2 py-0.5 rounded-md font-mono ${isSelected ? 'bg-blue-700 text-blue-100' : 'bg-slate-800 text-slate-400'
+            }`}>
             {badge}
           </span>
         )}
@@ -318,14 +318,14 @@ const SchoolAdminDash = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
-      
+
       {/* MOBILE TOP BAR (Hidden on Desktop) */}
       <header className="w-full bg-slate-900 text-slate-100 px-4 py-3 flex items-center justify-between border-b border-slate-800 sticky top-0 z-30 md:hidden">
         <div className="flex items-center gap-2">
           <Building2 className="text-blue-400" size={22} />
           <h1 className="text-sm font-bold tracking-wide text-white uppercase">School Workspace</h1>
         </div>
-        <button 
+        <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="p-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:text-white transition-colors"
         >
@@ -335,7 +335,7 @@ const SchoolAdminDash = () => {
 
       {/* BACKDROP OVERLAY FOR MOBILE VIEWPORTS */}
       {mobileMenuOpen && (
-        <div 
+        <div
           onClick={() => setMobileMenuOpen(false)}
           className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-30 md:hidden animate-fade-in"
         />
@@ -348,7 +348,7 @@ const SchoolAdminDash = () => {
         md:translate-x-0 md:sticky md:h-screen
         ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
-        
+
         {/* Workspace Brand Block (Visible on Desktop only inside sidebar) */}
         <div className="hidden md:flex px-6 py-5 border-b border-slate-800 items-center gap-2.5">
           <Building2 className="text-blue-400" size={24} />
@@ -373,6 +373,8 @@ const SchoolAdminDash = () => {
         {/* Dynamic Navigation Sidebar Links */}
         <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto scrollbar-none">
           {renderSidebarButton('homework', 'Homework & Tasks', BookOpen)}
+
+          {renderSidebarButton('exams', 'Exam Configurations', Calendar)}
 
           {!isStaff && (
             <>
@@ -412,6 +414,10 @@ const SchoolAdminDash = () => {
 
           {activeTab === 'homework' && (
             <StaffDashboard user={user} logoutState={logoutState} />
+          )}
+
+          {activeTab === 'exams' && (
+            <ExamManagement getAxiosConfig={getAxiosConfig} />
           )}
 
           {activeTab === 'directory' && !isStaff && (
