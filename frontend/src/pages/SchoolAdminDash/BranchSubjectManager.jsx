@@ -991,7 +991,7 @@ const BranchSubjectManager = ({ getAxiosConfig }) => {
                                                                     onClick={() => handleToggleSubject(subject.school_subject_id)}
                                                                     className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-blue-600 transition-colors"
                                                                 >
-                                                                    {subject.status === 'Active' ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
+                                                                    {subject.status === 'active' ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
                                                                 </button>
                                                                 <button
                                                                     onClick={() => handleDropSubject(subject.school_subject_id)}

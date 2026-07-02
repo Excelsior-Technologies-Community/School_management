@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { backendUrl } from '../../App';
-import { BookOpen, Plus, Edit, Trash2, Loader2, ArrowLeft, Save, ClipboardCheck, Scale, Award, AlertTriangle, X } from 'lucide-react';
+import { BookOpen, Plus, Edit, Trash2, Loader2, ArrowLeft, Save, ClipboardCheck, Scale, Award, AlertTriangle, X, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 
 const ExamSubjectManagement = ({ exam, onBack, getAxiosConfig }) => {
     const [subjects, setSubjects] = useState([]);
@@ -17,6 +17,9 @@ const ExamSubjectManagement = ({ exam, onBack, getAxiosConfig }) => {
     // Modal Control State
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [subjectToDelete, setSubjectToDelete] = useState(null);
+
+    // Filter States 
+    const [selectedBatchFilter, setSelectedBatchFilter] = useState('');
 
     const [formData, setFormData] = useState({
         batch_id: '',
@@ -50,10 +53,21 @@ const ExamSubjectManagement = ({ exam, onBack, getAxiosConfig }) => {
 
             if (batchesRes.data.success) {
                 const globalBatches = batchesRes.data.data || [];
-                const filtered = globalBatches.filter(b =>
-                    targetClassIds.includes(b.school_class_id || b.batch_id) &&
-                    b.status === 'Active'
-                );
+
+                const filtered = globalBatches.filter(b => {
+                    const matchesClass = targetClassIds.includes(b.school_class_id);
+
+                    const isActive = b.status === 'Active';
+
+                    const matchesBoard = b.board_name && exam.board_name &&
+                        b.board_name.trim().toLowerCase() === exam.board_name.trim().toLowerCase();
+
+                    const matchesMedium = b.medium_name && exam.medium_name &&
+                        b.medium_name.trim().toLowerCase() === exam.medium_name.trim().toLowerCase();
+
+                    return matchesClass && isActive && matchesBoard && matchesMedium;
+                });
+
                 setBatches(filtered);
             }
         } catch (err) {
@@ -177,7 +191,6 @@ const ExamSubjectManagement = ({ exam, onBack, getAxiosConfig }) => {
         });
     };
 
-    // Open Modal Handlers
     const triggerDeleteModal = (subject) => {
         setSubjectToDelete(subject);
         setIsDeleteModalOpen(true);
@@ -205,6 +218,20 @@ const ExamSubjectManagement = ({ exam, onBack, getAxiosConfig }) => {
             setDeleteLoading(false);
         }
     };
+
+    const [currentSubjectPage, setCurrentSubjectPage] = useState(1);
+    const subjectRowsPerPage = 8;
+    const filteredSubjects = subjects.filter(row =>
+        !selectedBatchFilter || row.batch_id?.toString() === selectedBatchFilter.toString()
+    );
+    const totalSubjectPages = Math.ceil(filteredSubjects.length / subjectRowsPerPage);
+    const indexOfSubjectLastRow = currentSubjectPage * subjectRowsPerPage;
+    const indexOfSubjectFirstRow = indexOfSubjectLastRow - subjectRowsPerPage;
+    const displaySubjectRows = filteredSubjects.slice(indexOfSubjectFirstRow, indexOfSubjectLastRow);
+
+    useEffect(() => {
+        setCurrentSubjectPage(1);
+    }, [selectedBatchFilter]);
 
     return (
         <div className='space-y-6 animate-fade-in relative'>
@@ -456,9 +483,35 @@ const ExamSubjectManagement = ({ exam, onBack, getAxiosConfig }) => {
 
                 {/* Allocated Subjects View */}
                 <div className='bg-white rounded-2xl border border-slate-200 shadow-sm lg:col-span-2 overflow-hidden flex flex-col'>
-                    <div className='p-4 border-b border-slate-100 flex items-center gap-2'>
-                        <ClipboardCheck className='text-blue-600 w-4 h-4' />
-                        <h3 className='font-bold text-slate-800 text-sm'>Configured Exam Subjects</h3>
+                    <div className='p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
+                        <div className='flex items-center gap-2'>
+                            <ClipboardCheck className='text-blue-600 w-4 h-4' />
+                            <h3 className='font-bold text-slate-800 text-sm'>Configured Exam Subjects</h3>
+                        </div>
+
+                        <div className='flex items-center gap-2'>
+                            <select
+                                value={selectedBatchFilter}
+                                onChange={(e) => setSelectedBatchFilter(e.target.value)}
+                                className='text-xs px-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 outline-none max-w-50'
+                            >
+                                <option value="">All Batches</option>
+                                {Array.from(new Set(displaySubjectRows.map(slot => JSON.stringify({ id: slot.batch_id, name: slot.batch_name }))))
+                                    .map(str => JSON.parse(str))
+                                    .filter(b => b.id)
+                                    .map(b => (
+                                        <option key={b.id} value={b.id}>{b.name || `Batch ID: ${b.id}`}</option>
+                                    ))
+                                }
+                            </select>
+
+                            <button
+                                onClick={fetchSubjectModuleData}
+                                className='p-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 transition-colors'
+                            >
+                                <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+                            </button>
+                        </div>
                     </div>
 
                     <div className='flex-1 overflow-x-auto'>
@@ -467,7 +520,7 @@ const ExamSubjectManagement = ({ exam, onBack, getAxiosConfig }) => {
                                 <Loader2 className='animate-spin text-blue-500 w-7 h-7' />
                                 <p className='text-xs text-slate-400 font-medium'>Loading exam subjects...</p>
                             </div>
-                        ) : subjects.length === 0 ? (
+                        ) : displaySubjectRows.length === 0 ? (
                             <div className='flex flex-col items-center justify-center py-24 gap-2 text-slate-400'>
                                 <Award size={36} className='stroke-[1.5]' />
                                 <p className='text-xs font-medium'>No subjects added to exam yet.</p>
@@ -485,84 +538,124 @@ const ExamSubjectManagement = ({ exam, onBack, getAxiosConfig }) => {
                                     </tr>
                                 </thead>
                                 <tbody className='divide-y divide-slate-100 text-xs'>
-                                    {subjects.map((row) => (
-                                        <tr key={row.exam_subject_id} className='hover:bg-slate-50/60 transition-colors group'>
-                                            <td className='py-3.5 px-4'>
-                                                <div className='font-bold text-blue-600'>{row.subject_name}</div>
-                                                <div className='text-[10px] text-slate-400 font-medium mt-0.5'>
-                                                    Batch : <span className='text-slate-600 font-semibold'>{row.batch_name || `Batch #${row.batch_id}`}</span>
-                                                </div>
-                                            </td>
-                                            <td className='py-3.5 px-3'>
-                                                <span className='capitalize px-2 py-0.5 rounded-md font-medium text-[10px] bg-slate-100 text-slate-600 font-mono'>
-                                                    {row.subject_type}
-                                                </span>
-                                            </td>
-                                            <td className='py-3.5 px-3'>
-                                                <div className='font-bold text-slate-700 text-sm'>{row.max_marks}</div>
-                                                {row.subject_type === 'both' && (
-                                                    <div className='text-[9px] text-slate-400 font-mono mt-0.5'>
-                                                        Th: {row.max_marks_theory} | Pr: {row.max_marks_practical}
+                                    {displaySubjectRows
+                                        .map((row) => (
+                                            <tr key={row.exam_subject_id} className='hover:bg-slate-50/60 transition-colors group'>
+                                                <td className='py-3.5 px-4'>
+                                                    <div className='font-bold text-blue-600'>{row.subject_name}</div>
+                                                    <div className='text-[10px] text-slate-400 font-medium mt-0.5'>
+                                                        Batch : <span className='text-slate-600 font-semibold'>{row.batch_name || `Batch #${row.batch_id}`}</span>
                                                     </div>
-                                                )}
-                                            </td>
-                                            <td className='py-3.5 px-3'>
-                                                <div className='font-semibold text-slate-600'>Min: <span className='text-slate-800 font-bold'>{row.pass_mark}</span></div>
-                                                {(parseFloat(row.pass_mark_theory) > 0 || parseFloat(row.pass_mark_practical) > 0) && (
-                                                    <div className='text-[9px] text-slate-400 font-mono mt-0.5'>
-                                                        Th: {row.pass_mark_theory} | Pr: {row.pass_mark_practical}
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td className='py-3.5 px-3 font-mono text-[10px] text-slate-500'>
-                                                {(() => {
-                                                    if (!row.marks_weightage) {
-                                                        return <span className="italic text-slate-300">Standard</span>;
-                                                    }
-
-                                                    let weightage = row.marks_weightage;
-                                                    if (typeof weightage === 'string') {
-                                                        try {
-                                                            weightage = JSON.parse(weightage);
-                                                        } catch (e) {
-                                                            console.error("Failed to parse marks_weightage:", e);
-                                                            return <span className='italic text-rose-400'>Invalid Format</span>;
-                                                        }
-                                                    }
-
-                                                    const theoryVal = String(weightage.theory || 0).replace('%', '');
-                                                    const practicalVal = String(weightage.practical || 0).replace('%', '');
-                                                    const internalVal = String(weightage.internal || 0).replace('%', '');
-
-                                                    return (
-                                                        <div>
-                                                            T: {theoryVal}% / P: {practicalVal}% / In: {internalVal}%
+                                                </td>
+                                                <td className='py-3.5 px-3'>
+                                                    <span className='capitalize px-2 py-0.5 rounded-md font-medium text-[10px] bg-slate-100 text-slate-600 font-mono'>
+                                                        {row.subject_type}
+                                                    </span>
+                                                </td>
+                                                <td className='py-3.5 px-3'>
+                                                    <div className='font-bold text-slate-700 text-sm'>{row.max_marks}</div>
+                                                    {row.subject_type === 'both' && (
+                                                        <div className='text-[9px] text-slate-400 font-mono mt-0.5'>
+                                                            Th: {row.max_marks_theory} | Pr: {row.max_marks_practical}
                                                         </div>
-                                                    );
-                                                })()}
-                                            </td>
-                                            <td className='py-3.5 px-4 text-right'>
-                                                <div className='flex items-center justify-end gap-1'>
-                                                    <button
-                                                        onClick={() => handleEditClick(row)}
-                                                        className='p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all'
-                                                        title="Edit Subject Criteria"
-                                                    >
-                                                        <Edit size={13} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => triggerDeleteModal(row)}
-                                                        className='p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all'
-                                                        title="Deallocate Subject"
-                                                    >
-                                                        <Trash2 size={13} />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                                    )}
+                                                </td>
+                                                <td className='py-3.5 px-3'>
+                                                    <div className='font-semibold text-slate-600'>Min: <span className='text-slate-800 font-bold'>{row.pass_mark}</span></div>
+                                                    {(parseFloat(row.pass_mark_theory) > 0 || parseFloat(row.pass_mark_practical) > 0) && (
+                                                        <div className='text-[9px] text-slate-400 font-mono mt-0.5'>
+                                                            Th: {row.pass_mark_theory} | Pr: {row.pass_mark_practical}
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td className='py-3.5 px-3 font-mono text-[10px] text-slate-500'>
+                                                    {(() => {
+                                                        if (!row.marks_weightage) {
+                                                            return <span className="italic text-slate-300">Standard</span>;
+                                                        }
+
+                                                        let weightage = row.marks_weightage;
+                                                        if (typeof weightage === 'string') {
+                                                            try {
+                                                                weightage = JSON.parse(weightage);
+                                                            } catch (e) {
+                                                                console.error("Failed to parse marks_weightage:", e);
+                                                                return <span className='italic text-rose-400'>Invalid Format</span>;
+                                                            }
+                                                        }
+
+                                                        const theoryVal = String(weightage.theory || 0).replace('%', '');
+                                                        const practicalVal = String(weightage.practical || 0).replace('%', '');
+                                                        const internalVal = String(weightage.internal || 0).replace('%', '');
+
+                                                        return (
+                                                            <div>
+                                                                T: {theoryVal}% / P: {practicalVal}% / In: {internalVal}%
+                                                            </div>
+                                                        );
+                                                    })()}
+                                                </td>
+                                                <td className='py-3.5 px-4 text-right'>
+                                                    <div className='flex items-center justify-end gap-1'>
+                                                        <button
+                                                            onClick={() => handleEditClick(row)}
+                                                            className='p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all'
+                                                            title="Edit Subject Criteria"
+                                                        >
+                                                            <Edit size={13} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => triggerDeleteModal(row)}
+                                                            className='p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all'
+                                                            title="Deallocate Subject"
+                                                        >
+                                                            <Trash2 size={13} />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
                                 </tbody>
                             </table>
+
+                        )}
+                        {totalSubjectPages > 1 && (
+                            <div className="p-3 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center text-[11px] font-medium text-slate-600">
+                                <div>
+                                    Showing <span className="font-bold text-slate-800">{filteredSubjects.length === 0 ? 0 : indexOfSubjectFirstRow + 1}</span> to <span className="font-bold text-slate-800">{Math.min(indexOfSubjectLastRow, filteredSubjects.length)}</span> of <span className="font-bold text-slate-800">{filteredSubjects.length}</span> entries
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => currentSubjectPage > 1 && setCurrentSubjectPage(currentSubjectPage - 1)}
+                                        disabled={currentSubjectPage === 1}
+                                        className="p-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white transition-colors"
+                                    >
+                                        <ChevronLeft size={14} />
+                                    </button>
+                                    {[...Array(totalSubjectPages)].map((_, idx) => (
+                                        <button
+                                            key={idx}
+                                            type="button"
+                                            onClick={() => setCurrentSubjectPage(idx + 1)}
+                                            className={`px-2 py-1 rounded-md border transition-all text-[11px] font-bold ${currentSubjectPage === idx + 1
+                                                ? 'bg-blue-600 border-blue-600 text-white'
+                                                : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600'
+                                                }`}
+                                        >
+                                            {idx + 1}
+                                        </button>
+                                    ))}
+                                    <button
+                                        type="button"
+                                        onClick={() => currentSubjectPage < totalSubjectPages && setCurrentSubjectPage(currentSubjectPage + 1)}
+                                        disabled={currentSubjectPage === totalSubjectPages}
+                                        className="p-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white transition-colors"
+                                    >
+                                        <ChevronRight size={14} />
+                                    </button>
+                                </div>
+                            </div>
                         )}
                     </div>
                 </div>

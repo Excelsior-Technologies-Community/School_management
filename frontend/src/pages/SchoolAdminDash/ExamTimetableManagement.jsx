@@ -4,7 +4,9 @@ import { backendUrl } from '../../App';
 import { toast } from 'react-toastify';
 import {
     ArrowLeft, Calendar, CheckCircle, Clock, FileText,
-    Loader2, MapPin, Plus, RefreshCw, Trash2, User, Edit2, AlertTriangle, X
+    Loader2, MapPin, Plus, RefreshCw, Trash2, User, Edit2, AlertTriangle, X,
+    ChevronLeft,
+    ChevronRight
 } from 'lucide-react';
 
 const ExamTimetableManagement = ({ exam, onBack, getAxiosConfig }) => {
@@ -56,10 +58,19 @@ const ExamTimetableManagement = ({ exam, onBack, getAxiosConfig }) => {
             if (subjectsRes.data.success) setSubjects(subjectsRes.data.data);
             if (batchesRes.data.success) {
                 const globalBatches = batchesRes.data.data || [];
-                const filtered = globalBatches.filter(b =>
-                    targetClassIds.includes(b.school_class_id || b.batch_id) &&
-                    b.status === 'Active'
-                );
+                const filtered = globalBatches.filter(b => {
+                    const matchesClass = targetClassIds.includes(b.school_class_id);
+
+                    const isActive = b.status === 'Active';
+
+                    const matchesBoard = b.board_name && exam.board_name &&
+                        b.board_name.trim().toLowerCase() === exam.board_name.trim().toLowerCase();
+
+                    const matchesMedium = b.medium_name && exam.medium_name &&
+                        b.medium_name.trim().toLowerCase() === exam.medium_name.trim().toLowerCase();
+
+                    return matchesClass && isActive && matchesBoard && matchesMedium;
+                });
                 setBatches(filtered);
             }
             if (staffRes.data.success) {
@@ -170,6 +181,20 @@ const ExamTimetableManagement = ({ exam, onBack, getAxiosConfig }) => {
             setSlotToDelete(null);
         }
     };
+
+    const [currentTimetablePage, setCurrentTimetablePage] = useState(1);
+    const timetableRowsPerPage = 6;
+    const filteredEntries = timetable.filter(row =>
+        !selectedBatchFilter || row.batch_id?.toString() === selectedBatchFilter.toString()
+    );
+    const totalTimetablePages = Math.ceil(filteredEntries.length / timetableRowsPerPage);
+    const indexOfTimetableLastRow = currentTimetablePage * timetableRowsPerPage;
+    const indexOfTimetableFirstRow = indexOfTimetableLastRow - timetableRowsPerPage;
+    const displayTimetableRows = filteredEntries.slice(indexOfTimetableFirstRow, indexOfTimetableLastRow);
+
+    useEffect(() => {
+        setCurrentTimetablePage(1);
+    }, [selectedBatchFilter]);
 
     return (
         <div className='space-y-6 animate-fade-in relative'>
@@ -383,8 +408,7 @@ const ExamTimetableManagement = ({ exam, onBack, getAxiosConfig }) => {
                                     </tr>
                                 </thead>
                                 <tbody className='divide-y divide-slate-100 text-xs'>
-                                    {timetable
-                                        .filter(slot => !selectedBatchFilter || slot.batch_id?.toString() === selectedBatchFilter.toString())
+                                    {displayTimetableRows
                                         .map((slot) => (
                                             <tr key={slot.exam_timetable_id} className={`transition-colors ${currentTimetableId === slot.exam_timetable_id ? 'bg-blue-50/40 hover:bg-blue-50/60' : 'hover:bg-slate-50/50'}`}>
                                                 <td className='py-3.5 px-4'>
@@ -441,6 +465,45 @@ const ExamTimetableManagement = ({ exam, onBack, getAxiosConfig }) => {
                                     )}
                                 </tbody>
                             </table>
+                        )}
+
+                        {totalTimetablePages > 1 && (
+                            <div className="p-3 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center text-[11px] font-medium text-slate-600">
+                                <div>
+                                    Showing <span className="font-bold text-slate-800">{indexOfTimetableFirstRow + 1}</span> to <span className="font-bold text-slate-800">{Math.min(indexOfTimetableLastRow, timetable.length)}</span> of <span className="font-bold text-slate-800">{timetable.length}</span> entries
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => currentTimetablePage > 1 && setCurrentTimetablePage(currentTimetablePage - 1)}
+                                        disabled={currentTimetablePage === 1}
+                                        className="p-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white transition-colors"
+                                    >
+                                        <ChevronLeft size={14} />
+                                    </button>
+                                    {[...Array(totalTimetablePages)].map((_, idx) => (
+                                        <button
+                                            key={idx}
+                                            type="button"
+                                            onClick={() => setCurrentTimetablePage(idx + 1)}
+                                            className={`px-2 py-1 rounded-md border transition-all text-[11px] font-bold ${currentTimetablePage === idx + 1
+                                                ? 'bg-blue-600 border-blue-600 text-white'
+                                                : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600'
+                                                }`}
+                                        >
+                                            {idx + 1}
+                                        </button>
+                                    ))}
+                                    <button
+                                        type="button"
+                                        onClick={() => currentTimetablePage < totalTimetablePages && setCurrentTimetablePage(currentTimetablePage + 1)}
+                                        disabled={currentTimetablePage === totalTimetablePages}
+                                        className="p-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white transition-colors"
+                                    >
+                                        <ChevronRight size={14} />
+                                    </button>
+                                </div>
+                            </div>
                         )}
                     </div>
                 </div>
