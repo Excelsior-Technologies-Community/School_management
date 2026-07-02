@@ -16,6 +16,7 @@ const timetableRoutes = require('./routes/timetableRoutes')
 const homeworkRoutes = require('./routes/homeworkRoutes')
 const mediumRoutes = require('./routes/mediumRoutes')
 const boardRoutes = require('./routes/boardRoutes')
+const examRoutes = require('./routes/examRoutes')
 
 const app = express();
 
@@ -35,6 +36,7 @@ app.use('/api/timetable', timetableRoutes)
 app.use('/api/homework', homeworkRoutes)
 app.use('/api/medium', mediumRoutes)
 app.use('/api/board', boardRoutes)
+app.use('/api/exam', examRoutes)
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
