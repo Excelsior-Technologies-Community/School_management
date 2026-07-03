@@ -17,6 +17,8 @@ const homeworkRoutes = require('./routes/homeworkRoutes')
 const mediumRoutes = require('./routes/mediumRoutes')
 const boardRoutes = require('./routes/boardRoutes')
 const examRoutes = require('./routes/examRoutes')
+const academicYearRoutes = require('./routes/academicYearRoutes')
+const feeStructureRoutes = require('./routes/feeStructureRoutes')
 
 const app = express();
 
@@ -37,6 +39,8 @@ app.use('/api/homework', homeworkRoutes)
 app.use('/api/medium', mediumRoutes)
 app.use('/api/board', boardRoutes)
 app.use('/api/exam', examRoutes)
+app.use('/api/academicyear',academicYearRoutes)
+app.use('/api/fee',feeStructureRoutes)
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
