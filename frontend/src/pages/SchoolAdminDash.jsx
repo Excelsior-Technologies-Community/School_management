@@ -1,11 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import {
-  Building2, LogOut, Users2, UserPlus, Network, Banknote,
-  Layers, Boxes, GitBranch, Clock, GraduationCap, BookOpen, User, Menu, X,
-  School,
-  Calendar
-} from 'lucide-react';
+import { Building2, LogOut, Users2, UserPlus, Network, Banknote, Layers, Boxes, GitBranch, Clock, GraduationCap, BookOpen, User, Menu, X, School, Calendar, Calendars, BanknoteArrowDown, BanknoteArrowUp } from 'lucide-react';
 import axios from 'axios';
 import { backendUrl } from '../App';
 import { toast } from 'react-toastify';
@@ -20,6 +15,8 @@ import TimetableManagement from './SchoolAdminDash/TimetableManagement';
 import StudentManagement from './SchoolAdminDash/StudentManagement';
 import StaffDashboard from './StaffDashboard';
 import ExamManagement from './SchoolAdminDash/ExamManagement';
+import AcademicYearManager from './SchoolAdminDash/AcademicYearManager';
+import FeeStructureManager from './SchoolAdminDash/FeeStructureManager';
 
 const SchoolAdminDash = () => {
   const { user, logoutState } = useAuth();
@@ -27,7 +24,7 @@ const SchoolAdminDash = () => {
   const isStaff = user?.role === 'staff_member';
 
   const [activeTab, setActiveTab] = useState(isStaff ? 'homework' : 'directory');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false); // Mobile Menu State Toggle
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [staffList, setStaffList] = useState([]);
   const [payrollList, setPayrollList] = useState([]);
@@ -295,7 +292,7 @@ const SchoolAdminDash = () => {
           if (tabName === 'departments') resetDeptFormState();
           setActiveTab(tabName);
           setCurrentPage(1);
-          setMobileMenuOpen(false); // Close drawer on mobile selection click
+          setMobileMenuOpen(false);
         }}
         className={`w-full flex items-center justify-between px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200 group ${isSelected
           ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
@@ -341,7 +338,7 @@ const SchoolAdminDash = () => {
         />
       )}
 
-      {/* RESPONSIVE LEFT SIDEBAR PANEL */}
+      {/* LEFT SIDEBAR PANEL */}
       <aside className={`
         fixed inset-y-0 left-0 w-64 bg-slate-900 text-slate-100 flex flex-col border-r border-slate-800 shrink-0 z-40
         transform transition-transform duration-300 ease-in-out
@@ -349,7 +346,6 @@ const SchoolAdminDash = () => {
         ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
 
-        {/* Workspace Brand Block (Visible on Desktop only inside sidebar) */}
         <div className="hidden md:flex px-6 py-5 border-b border-slate-800 items-center gap-2.5">
           <Building2 className="text-blue-400" size={24} />
           <div>
@@ -357,7 +353,6 @@ const SchoolAdminDash = () => {
           </div>
         </div>
 
-        {/* User Identity Panel */}
         <div className="px-4 py-4 mx-3 my-3 bg-slate-950/60 border border-slate-800/80 rounded-xl flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
             <User size={16} />
@@ -373,8 +368,9 @@ const SchoolAdminDash = () => {
         {/* Dynamic Navigation Sidebar Links */}
         <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto scrollbar-none">
           {renderSidebarButton('homework', 'Homework & Tasks', BookOpen)}
-
           {renderSidebarButton('exams', 'Exam Configurations', Calendar)}
+          {renderSidebarButton('years', 'Academic Years', Calendars)}
+          {renderSidebarButton('fees', 'Fee Structure', BanknoteArrowUp)}
 
           {!isStaff && (
             <>
@@ -383,7 +379,7 @@ const SchoolAdminDash = () => {
               </div>
               {renderSidebarButton('directory', 'Staff Registry', Users2, staffList.length)}
               {renderSidebarButton('add-staff', isEditingStaff ? 'Modify Profile' : 'Onboard Staff', UserPlus)}
-              {renderSidebarButton('payroll', 'Payroll Registry', Banknote)}
+              {renderSidebarButton('payroll', 'Payroll Registry', BanknoteArrowDown)}
 
               <div className="pt-4 pb-1 px-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 font-mono">
                 Academic Operations
@@ -397,7 +393,6 @@ const SchoolAdminDash = () => {
           )}
         </nav>
 
-        {/* Action Logout Footer Block */}
         <div className="p-3 border-t border-slate-800 bg-slate-950/30">
           <button
             onClick={logoutState}
@@ -408,7 +403,7 @@ const SchoolAdminDash = () => {
         </div>
       </aside>
 
-      {/* RIGHT DISPLAY VIEWPORT */}
+      {/* RIGHT DISPLAY */}
       <main className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
         <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto flex-1">
 
@@ -418,6 +413,14 @@ const SchoolAdminDash = () => {
 
           {activeTab === 'exams' && (
             <ExamManagement getAxiosConfig={getAxiosConfig} />
+          )}
+
+          {activeTab === 'years' && (
+            <AcademicYearManager getAxiosConfig={getAxiosConfig} />
+          )}
+
+          {activeTab === 'fees' && (
+            <FeeStructureManager getAxiosConfig={getAxiosConfig} />
           )}
 
           {activeTab === 'directory' && !isStaff && (

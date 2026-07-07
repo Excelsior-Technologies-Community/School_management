@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { backendUrl } from '../../App';
 import { toast } from 'react-toastify';
-import { CalendarDays, Plus, Edit2, Trash2, Layers, CheckCircle, XCircle, ArrowRight, ToggleLeft, ToggleRight, Loader2, Info, Building2 } from 'lucide-react';
+import { CalendarDays, Plus, Edit2, Trash2, Layers, XCircle, ArrowRight, ToggleLeft, ToggleRight, Loader2, Info, Building2, AlertTriangle } from 'lucide-react';
 
 const AcademicYearManager = ({ getAxiosConfig }) => {
     const [branches, setBranches] = useState([]);
@@ -41,6 +41,10 @@ const AcademicYearManager = ({ getAxiosConfig }) => {
         status: 'Active'
     });
 
+    // Delete Modals State
+    const [deleteYearTarget, setDeleteYearTarget] = useState(null);
+    const [deleteSessionTarget, setDeleteSessionTarget] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const formatDateForInput = (dateString) => {
         if (!dateString) return '';
@@ -68,9 +72,7 @@ const AcademicYearManager = ({ getAxiosConfig }) => {
         setLoadingBranches(true);
         try {
             const res = await axios.get(`${backendUrl}/api/academic/branches`, getAxiosConfig());
-
             const branchData = res.data.data || res.data || [];
-
             const activeBranches = branchData.filter(b => b.status === 'Active');
             setBranches(activeBranches);
 
@@ -121,13 +123,14 @@ const AcademicYearManager = ({ getAxiosConfig }) => {
         }
     };
 
-    const handleDeleteYear = async (id) => {
-        if (!window.confirm('Wipe out this academic year completely?.')) return;
+    const handleDeleteYear = async () => {
+        if (!deleteYearTarget) return;
+        setIsDeleting(true);
         try {
-            const res = await axios.delete(`${backendUrl}/api/academicyear/year/${id}`, getAxiosConfig());
+            const res = await axios.delete(`${backendUrl}/api/academicyear/year/${deleteYearTarget.academic_year_id}`, getAxiosConfig());
             if (res.data.success) {
                 toast.success('Configuration structural layer dropped.');
-                if (selectedYear?.academic_year_id === id) {
+                if (selectedYear?.academic_year_id === deleteYearTarget.academic_year_id) {
                     setSelectedYear(null);
                     setSessions([]);
                 }
@@ -135,12 +138,14 @@ const AcademicYearManager = ({ getAxiosConfig }) => {
             }
         } catch (error) {
             toast.error(error.response?.data?.message || 'Error removing structure data.');
+        } finally {
+            setIsDeleting(false);
+            setDeleteYearTarget(null);
         }
     };
 
     const handleEditYearClick = (year) => {
         setYearId(year.academic_year_id);
-
         setYearForm({
             branch_id: year.branch_id,
             academic_year_name: year.academic_year_name,
@@ -160,7 +165,6 @@ const AcademicYearManager = ({ getAxiosConfig }) => {
         setYearId(null);
         setShowYearForm(false);
     };
-
 
     const fetchSessionsForYear = async (yearId) => {
         setLoadingSessions(true);
@@ -195,22 +199,25 @@ const AcademicYearManager = ({ getAxiosConfig }) => {
         }
     };
 
-    const handleDeleteSession = async (id) => {
-        if (!window.confirm('Delete this scheduled session?')) return;
+    const handleDeleteSession = async () => {
+        if (!deleteSessionTarget) return;
+        setIsDeleting(true);
         try {
-            const res = await axios.delete(`${backendUrl}/api/academicyear/session/${id}`, getAxiosConfig());
+            const res = await axios.delete(`${backendUrl}/api/academicyear/session/${deleteSessionTarget.session_id}`, getAxiosConfig());
             if (res.data.success) {
                 toast.success('Session item cleared out.');
                 fetchSessionsForYear(selectedYear.academic_year_id);
             }
         } catch (error) {
             toast.error('Could not remove session.');
+        } finally {
+            setIsDeleting(false);
+            setDeleteSessionTarget(null);
         }
     };
 
     const handleEditSessionClick = (session) => {
         setSessionId(session.session_id);
-
         setSessionForm({
             academic_year_id: session.academic_year_id,
             session_name: session.session_name,
@@ -223,6 +230,7 @@ const AcademicYearManager = ({ getAxiosConfig }) => {
         setIsEditingSession(true);
         setShowSessionForm(true);
     };
+
     const resetSessionForm = () => {
         setSessionForm({ session_name: '', session_number: '', start_date: '', end_date: '', is_current: 0, status: 'Active' });
         setIsEditingSession(false);
@@ -243,11 +251,88 @@ const AcademicYearManager = ({ getAxiosConfig }) => {
     }, [selectedBranchId]);
 
     return (
-        <div className='space-y-8 animate-fade-in'>
+        <div className='space-y-8 animate-fade-in relative'>
+
+            {/* DELETE CONFIRMATION MODAL (ACADEMIC YEAR) */}
+            {deleteYearTarget && (
+                <div className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in'>
+                    <div className='bg-white border border-slate-200 rounded-2xl p-6 max-w-md w-full shadow-xl space-y-4 transform transition-all scale-100'>
+                        <div className='flex items-start gap-3.5'>
+                            <div className='p-2.5 bg-rose-50 border border-rose-100 rounded-xl text-rose-600 shrink-0'>
+                                <AlertTriangle size={22} />
+                            </div>
+                            <div>
+                                <h3 className='text-base font-bold text-slate-800'>Wipe Out Academic Year?</h3>
+                                <p className='text-xs text-slate-500 mt-1 leading-relaxed'>
+                                    Are you sure you want to completely clear <strong className='text-slate-700 font-semibold'>{deleteYearTarget.academic_year_name}</strong>? This drops the entire configuration structural layer and related configurations.
+                                </p>
+                            </div>
+                        </div>
+                        <div className='flex justify-end gap-2 pt-2 border-t border-slate-100'>
+                            <button
+                                type="button"
+                                disabled={isDeleting}
+                                onClick={() => setDeleteYearTarget(null)}
+                                className='px-4 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors disabled:opacity-50'
+                            >
+                                Keep Record
+                            </button>
+                            <button
+                                type="button"
+                                disabled={isDeleting}
+                                onClick={handleDeleteYear}
+                                className='flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-sm transition-colors disabled:opacity-50'
+                            >
+                                {isDeleting && <Loader2 size={12} className='animate-spin' />}
+                                Drop Configuration
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/*  DELETE CONFIRMATION MODAL (SESSION) */}
+            {deleteSessionTarget && (
+                <div className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in'>
+                    <div className='bg-white border border-slate-200 rounded-2xl p-6 max-w-md w-full shadow-xl space-y-4 transform transition-all scale-100'>
+                        <div className='flex items-start gap-3.5'>
+                            <div className='p-2.5 bg-rose-50 border border-rose-100 rounded-xl text-rose-600 shrink-0'>
+                                <AlertTriangle size={22} />
+                            </div>
+                            <div>
+                                <h3 className='text-base font-bold text-slate-800'>Delete Scheduled Session?</h3>
+                                <p className='text-xs text-slate-500 mt-1 leading-relaxed'>
+                                    Are you sure you want to clear out <strong className='text-slate-700 font-semibold'>{deleteSessionTarget.session_name}</strong> from the timeline matrix? This action cannot be reverted.
+                                </p>
+                            </div>
+                        </div>
+                        <div className='flex justify-end gap-2 pt-2 border-t border-slate-100'>
+                            <button
+                                type="button"
+                                disabled={isDeleting}
+                                onClick={() => setDeleteSessionTarget(null)}
+                                className='px-4 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors disabled:opacity-50'
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                disabled={isDeleting}
+                                onClick={handleDeleteSession}
+                                className='flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-sm transition-colors disabled:opacity-50'
+                            >
+                                {isDeleting && <Loader2 size={12} className='animate-spin' />}
+                                Clear Session
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-5'>
                 <div>
                     <h2 className='text-2xl font-bold text-slate-800'>Academic Years & Sub-Terms</h2>
-                    <p className='text-sm text-slate-500 mt-1'>Configure  academic years and seasonal semesters.</p>
+                    <p className='text-sm text-slate-500 mt-1'>Configure academic years and seasonal semesters.</p>
                 </div>
                 <button
                     onClick={() => { if (showYearForm) resetYearForm(); else setShowYearForm(true); }}
@@ -360,7 +445,6 @@ const AcademicYearManager = ({ getAxiosConfig }) => {
             )}
 
             <div className='grid grid-cols-1 lg:grid-cols-12 gap-6'>
-
                 <div className='lg:col-span-5 space-y-4'>
                     <h3 className='text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5'>
                         <CalendarDays size={16} /> Academic Years
@@ -377,8 +461,7 @@ const AcademicYearManager = ({ getAxiosConfig }) => {
                                 return (
                                     <div
                                         key={y.academic_year_id}
-                                        className={`p-4 bg-white border rounded-2xl transition-all cursor-pointer flex justify-between items-center group shadow-sm hover:border-slate-300 ${isTargetSelected ? 'ring-2 ring-blue-600/20 border-blue-600' : 'border-slate-200'
-                                            }`}
+                                        className={`p-4 bg-white border rounded-2xl transition-all cursor-pointer flex justify-between items-center group shadow-sm hover:border-slate-300 ${isTargetSelected ? 'ring-2 ring-blue-600/20 border-blue-600' : 'border-slate-200'}`}
                                     >
                                         <div className='space-y-1.5 min-w-0'>
                                             <div className='flex items-center gap-2'>
@@ -397,7 +480,7 @@ const AcademicYearManager = ({ getAxiosConfig }) => {
 
                                         <div className='flex items-center gap-1 opacity-80 md:opacity-0 group-hover:opacity-100 transition-opacity' onClick={(e) => e.stopPropagation()}>
                                             <button onClick={() => handleEditYearClick(y)} className='p-1.5 text-slate-400 hover:text-blue-600 hover:bg-slate-50 rounded-lg'><Edit2 size={13} /></button>
-                                            <button onClick={() => handleDeleteYear(y.academic_year_id)} className='p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-50 rounded-lg'><Trash2 size={13} /></button>
+                                            <button onClick={() => setDeleteYearTarget(y)} className='p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-50 rounded-lg'><Trash2 size={13} /></button>
                                             <ArrowRight onClick={() => {
                                                 setSelectedYear(y);
                                                 fetchSessionsForYear(y.academic_year_id);
@@ -432,7 +515,6 @@ const AcademicYearManager = ({ getAxiosConfig }) => {
                         </div>
                     ) : (
                         <div className='space-y-4'>
-
                             <div className='bg-white border border-slate-200 rounded-2xl p-3 px-4 text-xs font-medium text-slate-600 flex justify-between items-center shadow-sm'>
                                 <span>Academic Year: <strong className='text-slate-800 font-bold'>{selectedYear.academic_year_name}</strong></span>
                                 <span className='text-[10px] text-slate-400 uppercase font-mono tracking-wider'>Year ID: #{selectedYear.academic_year_id}</span>
@@ -529,7 +611,7 @@ const AcademicYearManager = ({ getAxiosConfig }) => {
                                                     <td className='p-3 pr-4 text-end'>
                                                         <div className='flex items-center justify-end gap-2'>
                                                             <button onClick={() => handleEditSessionClick(s)} className='p-1 text-slate-400 hover:text-blue-600'><Edit2 size={12} /></button>
-                                                            <button onClick={() => handleDeleteSession(s.session_id)} className='p-1 text-slate-400 hover:text-rose-600'><Trash2 size={12} /></button>
+                                                            <button onClick={() => setDeleteSessionTarget(s)} className='p-1 text-slate-400 hover:text-rose-600'><Trash2 size={12} /></button>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -541,7 +623,6 @@ const AcademicYearManager = ({ getAxiosConfig }) => {
                         </div>
                     )}
                 </div>
-
             </div>
         </div>
     );
