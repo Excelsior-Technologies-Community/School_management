@@ -68,12 +68,10 @@ const HomeworkModel = {
         return rows[0]?.[0] || { result_status: 'SUCCESS' };
     },
 
-
-    //
     getStaffAllocations: async (schoolId, teacherId) => {
-    const [rows] = await db.query('CALL sp_GetStaffAllocations(?, ?)', [teacherId, schoolId]);
-    return rows[0] || [];
-}
+        const [rows] = await db.query('CALL sp_GetStaffAllocations(?, ?)', [teacherId, schoolId]);
+        return rows[0] || [];
+    }
 };
 
 module.exports = HomeworkModel;
