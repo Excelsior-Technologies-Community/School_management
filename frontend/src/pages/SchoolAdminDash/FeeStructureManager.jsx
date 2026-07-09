@@ -1,10 +1,10 @@
 import axios from 'axios';
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { backendUrl } from '../../App';
-import { Edit2, IndianRupee, ListPlus, Loader2, Percent, Plus, ShieldAlert, Trash2, XCircle, AlertTriangle } from 'lucide-react';
+import { Edit2, IndianRupee, ListPlus, Loader2, Percent, Plus, ShieldAlert, Trash2, XCircle, AlertTriangle, Sparkles } from 'lucide-react';
 
-const FeeStructureManager = ({ getAxiosConfig }) => {
+const FeeStructureManager = ({ getAxiosConfig, onGenerationSuccess }) => {
   const [branches, setBranches] = useState([]);
   const [batches, setBatches] = useState([]);
   const [academicYears, setAcademicYears] = useState([]);
@@ -15,6 +15,8 @@ const FeeStructureManager = ({ getAxiosConfig }) => {
   const [showForm, setShowForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentStructureId, setCurrentStructureId] = useState(null);
+
+  const [isGenerating, setIsGenerating] = useState({});
 
   // Delete Modal States
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -71,7 +73,6 @@ const FeeStructureManager = ({ getAxiosConfig }) => {
   const fetchAcademicYears = async (branchId) => {
     try {
       const yearsRes = await axios.get(`${backendUrl}/api/academicyear/years?branch_id=${branchId}`, getAxiosConfig());
-
       const activeYears = (yearsRes.data?.data || []).filter(y => y.status === 'Active');
       setAcademicYears(activeYears);
 
@@ -92,6 +93,37 @@ const FeeStructureManager = ({ getAxiosConfig }) => {
       toast.error('Error matching financial configuration rows.');
     } finally {
       setLoadingStructures(false);
+    }
+  };
+
+  // Inline Generation Logic for Target Batches
+  const handleInlineGenerate = async (struct) => {
+    const targetStructureId = struct.fee_structure_id;
+    const targetBatchId = struct.batch_id;
+
+    if (!targetStructureId || !targetBatchId) {
+      return toast.error("Unable to identify structure properties for execution.");
+    }
+
+    setIsGenerating(prev => ({ ...prev, [targetStructureId]: true }));
+    try {
+      const payload = {
+        batchId: parseInt(targetBatchId),
+        feeStructureId: parseInt(targetStructureId),
+        batch_id: parseInt(targetBatchId),
+        fee_structure_id: parseInt(targetStructureId)
+      };
+
+      const res = await axios.post(`${backendUrl}/api/fees/generate-batch-installments`, payload, getAxiosConfig());
+
+      if (res.data.success) {
+        toast.success(res.data.message || `Fee ledgers initialized for ${struct.batch_name || 'selected class'}.`);
+        if (onGenerationSuccess) onGenerationSuccess();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed processing allocation loops.');
+    } finally {
+      setIsGenerating(prev => ({ ...prev, [targetStructureId]: false }));
     }
   };
 
@@ -181,7 +213,6 @@ const FeeStructureManager = ({ getAxiosConfig }) => {
 
       setIsEditing(true);
       setCurrentStructureId(structure.fee_structure_id);
-      console.log(structure);
 
       setForm({
         branch_id: structure.branch_id || '',
@@ -492,6 +523,7 @@ const FeeStructureManager = ({ getAxiosConfig }) => {
             <table className='w-full text-left text-sm border-collapse'>
               <thead>
                 <tr className='bg-slate-50 text-slate-400 font-bold text-xs uppercase border-b border-slate-100'>
+                  <th className='p-2'>Id</th>
                   <th className='p-4'>Branch</th>
                   <th className='p-4'>Batch</th>
                   <th className='p-4'>Academic year</th>
@@ -505,6 +537,7 @@ const FeeStructureManager = ({ getAxiosConfig }) => {
               <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
                 {feeStructures.map((struct) => (
                   <tr key={struct.fee_structure_id} className="hover:bg-slate-50/70 transition-colors">
+                    <td className='p-2 text-blue-800 font-semibold'>{struct.fee_structure_id}</td>
                     <td className="p-4 text-slate-600 font-semibold">
                       <div>{struct.branch_name}</div>
                       <div className="text-[11px] text-slate-400 font-normal mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5 items-center">
@@ -532,7 +565,26 @@ const FeeStructureManager = ({ getAxiosConfig }) => {
                       </span>
                     </td>
                     <td className="p-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleInlineGenerate(struct)}
+                          disabled={isGenerating[struct.fee_structure_id] || struct.status !== 'Active'}
+                          title="Generate ledgers for this entire batch"
+                          className={`flex items-center gap-1 text-[11px] font-bold px-2 py-1.5 rounded-lg border transition-all ${struct.status !== 'Active'
+                            ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'
+                            : 'bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border-emerald-200 shadow-sm'
+                            }`}
+                        >
+                          {isGenerating[struct.fee_structure_id] ? (
+                            <Loader2 size={12} className="animate-spin" />
+                          ) : (
+                            <Sparkles size={11} />
+                          )}
+                          {isGenerating[struct.fee_structure_id] ? 'Generating...' : 'Generate fee installments'}
+                        </button>
+
+                        <div className="w-px h-4 bg-slate-200 mx-0.5" />
+
                         <button onClick={() => handleEditClick(struct)} className="p-1.5 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-lg transition-all">
                           <Edit2 size={14} />
                         </button>

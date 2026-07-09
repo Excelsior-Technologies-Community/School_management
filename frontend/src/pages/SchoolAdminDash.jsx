@@ -17,6 +17,7 @@ import StaffDashboard from './StaffDashboard';
 import ExamManagement from './SchoolAdminDash/ExamManagement';
 import AcademicYearManager from './SchoolAdminDash/AcademicYearManager';
 import FeeStructureManager from './SchoolAdminDash/FeeStructureManager';
+import FeeDashboardTracking from './SchoolAdminDash/FeeDashboardTracking';
 
 const SchoolAdminDash = () => {
   const { user, logoutState } = useAuth();
@@ -371,6 +372,7 @@ const SchoolAdminDash = () => {
           {renderSidebarButton('exams', 'Exam Configurations', Calendar)}
           {renderSidebarButton('years', 'Academic Years', Calendars)}
           {renderSidebarButton('fees', 'Fee Structure', BanknoteArrowUp)}
+          {renderSidebarButton('fee-tracking', 'Fee Payments', Banknote)}
 
           {!isStaff && (
             <>
@@ -421,6 +423,10 @@ const SchoolAdminDash = () => {
 
           {activeTab === 'fees' && (
             <FeeStructureManager getAxiosConfig={getAxiosConfig} />
+          )}
+
+          {activeTab === 'fee-tracking' && (
+            <FeeDashboardTracking getAxiosConfig={getAxiosConfig} />
           )}
 
           {activeTab === 'directory' && !isStaff && (
