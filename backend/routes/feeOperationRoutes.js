@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { generateStudentInstallments, applyFeeDiscount, processFeePayment, generateBatchInstallments, updateFeeDiscount, updateFeePayment, getStudentFeeDetails } = require('../controllers/feeOperationController');
+const { generateStudentInstallments, applyFeeDiscount, processFeePayment, generateBatchInstallments, updateFeeDiscount, updateFeePayment, getStudentFeeDetails, getAdminFeeDashboard } = require('../controllers/feeOperationController');
 const upload = require('../middleware/multer');
 const { verifyToken, restrictTo } = require('../middleware/authMiddleware');
 
@@ -10,6 +10,8 @@ router.post('/apply-discount', verifyToken, restrictTo('school_admin', 'staff_me
 router.post('/process-payment', verifyToken, restrictTo('school_admin', 'staff_member'), upload.single('receipt'), processFeePayment)
 router.put('/update-discount', verifyToken, restrictTo('school_admin', 'staff_member'), updateFeeDiscount)
 router.put('/update-payment', verifyToken, restrictTo('school_admin', 'staff_member'), upload.single('receipt'), updateFeePayment)
+
+router.get('/dashboard-tracking', verifyToken, restrictTo('school_admin', 'staff_member'), getAdminFeeDashboard);
 
 router.get('/get-fee-details', verifyToken, restrictTo('student'), getStudentFeeDetails)
 

@@ -3,6 +3,8 @@ const mysql = require('mysql2')
 const cors = require('cors')
 require('dotenv').config();
 
+require('./services/feeAutomation.js');
+
 // swagger imports
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./swagger.json');

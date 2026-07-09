@@ -23,6 +23,6 @@ router.delete('/payroll/clear/:staffId', verifyToken, restrictTo('school_admin')
 
 // student management 
 router.post('/students/register', verifyToken, restrictTo('school_admin'), registerStudent);
-router.get('/students', verifyToken, restrictTo('school_admin'), getSchoolStudents)
+router.get('/students', verifyToken, restrictTo('school_admin','staff_member'), getSchoolStudents)
 
 module.exports = router;

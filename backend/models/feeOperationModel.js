@@ -54,7 +54,7 @@ const FeeOperationModel = {
         );
         return rows[0][0];
     },
-    
+
     updateDiscount: async (discountData) => {
         const [rows] = await db.query(
             'CALL sp_UpdateFeeDiscount(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -96,6 +96,21 @@ const FeeOperationModel = {
 
     getStudentFee: async (studentId) => {
         const [rows] = await db.query('CALL sp_GetStudentFeeStatement(?)', [studentId]);
+        return rows[0];
+    },
+
+    getFeeTrackingDashboard: async (filters) => {
+        const [rows] = await db.query(
+            'CALL sp_GetSchoolFeeTrackingDashboard(?, ?, ?, ?, ?, ?)',
+            [
+                filters.fee_structure_id || null,
+                filters.batch_id || null,
+                filters.installment_status || null,
+                filters.search_query || null,
+                parseInt(filters.limit) || 20,
+                parseInt(filters.offset) || 0
+            ]
+        );
         return rows[0];
     }
 };

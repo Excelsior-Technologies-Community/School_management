@@ -154,4 +154,24 @@ const getStudentFeeDetails = async (req, res) => {
     }
 };
 
-module.exports = { generateStudentInstallments, applyFeeDiscount, processFeePayment, generateBatchInstallments, updateFeeDiscount, updateFeePayment, getStudentFeeDetails }
+const getAdminFeeDashboard = async (req, res) => {
+    try {
+        const { fee_structure_id,batch_id, installment_status, search_query, limit, offset } = req.query;
+
+        const data = await FeeOperationModel.getFeeTrackingDashboard({
+            fee_structure_id,
+            batch_id,
+            installment_status,
+            search_query,
+            limit,
+            offset
+        });
+
+        return res.status(200).json({ success: true, count: data.length, data });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+
+module.exports = { generateStudentInstallments, applyFeeDiscount, processFeePayment, generateBatchInstallments, updateFeeDiscount, updateFeePayment, getStudentFeeDetails, getAdminFeeDashboard }
