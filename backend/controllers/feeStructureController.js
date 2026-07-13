@@ -1,11 +1,35 @@
 const FeeStructureModel = require('../models/feeStructureModel');
 
+const processFeeTotalsAndTaxes = (componentsArray) => {
+    let grandCalculatedTotal = 0;
+
+    const processedComponents = componentsArray.map((comp) => {
+        const baseAmount = parseFloat(comp.amount || 0);
+        const taxPercent = comp.tax_percentage ? parseFloat(comp.tax_percentage) : 0;
+
+        let finalTaxInclusiveAmount = baseAmount;
+
+        if (taxPercent > 0) {
+            finalTaxInclusiveAmount = baseAmount + (baseAmount * (taxPercent / 100));
+        }
+
+        grandCalculatedTotal += finalTaxInclusiveAmount;
+
+        return {
+            ...comp,
+            amount: baseAmount,
+            tax_percentage: comp.tax_percentage || null
+        };
+    });
+
+    return { grandCalculatedTotal, processedComponents };
+};
+
 const createFeeStructure = async (req, res) => {
     try {
         const {
             batch_id,
             academic_year_id,
-            total_amount,
             due_date,
             late_fee_rules,
             payment_type,
@@ -24,12 +48,14 @@ const createFeeStructure = async (req, res) => {
             });
         }
 
+        const { grandCalculatedTotal, processedComponents } = processFeeTotalsAndTaxes(components);
+
         const result = await FeeStructureModel.createWithComponents(
             {
                 school_id,
                 batch_id,
                 academic_year_id,
-                total_amount,
+                total_amount: grandCalculatedTotal,
                 due_date,
                 late_fee_rules: late_fee_rules || null,
                 payment_type,
@@ -37,12 +63,12 @@ const createFeeStructure = async (req, res) => {
                 status: status || 'Active',
                 created_by
             },
-            components
+            processedComponents
         );
 
         return res.status(201).json({
             success: true,
-            message: "Fee structure with master-detail components created successfully.",
+            message: "Fee structure with tax-inclusive component breakdowns created successfully.",
             data: result
         });
 
@@ -85,7 +111,7 @@ const updateFeeStructure = async (req, res) => {
         const school_id = req.user.school_id;
         const updated_by = req.user.id;
 
-        const { batch_id, academic_year_id, total_amount, due_date, late_fee_rules, payment_type, no_of_installments, status, components } = req.body;
+        const { batch_id, academic_year_id, due_date, late_fee_rules, payment_type, no_of_installments, status, components } = req.body;
 
         if (!components || !Array.isArray(components) || components.length === 0) {
             return res.status(400).json({
@@ -94,13 +120,15 @@ const updateFeeStructure = async (req, res) => {
             })
         }
 
+        const { grandCalculatedTotal, processedComponents } = processFeeTotalsAndTaxes(components);
+
         await FeeStructureModel.updateWithComponents(
             id,
             school_id,
             {
                 batch_id,
                 academic_year_id,
-                total_amount,
+                total_amount: grandCalculatedTotal,
                 due_date,
                 late_fee_rules: late_fee_rules || null,
                 payment_type,
@@ -108,7 +136,7 @@ const updateFeeStructure = async (req, res) => {
                 status: status,
                 updated_by
             },
-            components
+            processedComponents
         );
 
         return res.status(200).json({ success: true, message: "Fee structure and components updated successfully." })

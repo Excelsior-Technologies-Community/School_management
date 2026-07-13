@@ -2,7 +2,7 @@ import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { backendUrl } from '../../App';
-import { Edit2, IndianRupee, ListPlus, Loader2, Percent, Plus, ShieldAlert, Trash2, XCircle, AlertTriangle, Sparkles } from 'lucide-react';
+import { Edit2, IndianRupee, ListPlus, Loader2, Percent, Plus, ShieldAlert, Trash2, XCircle, AlertTriangle, Sparkles, Filter, ChevronRight, ChevronLeft } from 'lucide-react';
 
 const FeeStructureManager = ({ getAxiosConfig, onGenerationSuccess }) => {
   const [branches, setBranches] = useState([]);
@@ -17,6 +17,14 @@ const FeeStructureManager = ({ getAxiosConfig, onGenerationSuccess }) => {
   const [currentStructureId, setCurrentStructureId] = useState(null);
 
   const [isGenerating, setIsGenerating] = useState({});
+
+  // Filter States
+  const [filterBranchId, setFilterBranchId] = useState('');
+  const [filterBatchId, setFilterBatchId] = useState('');
+
+  // pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   // Delete Modal States
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -38,7 +46,12 @@ const FeeStructureManager = ({ getAxiosConfig, onGenerationSuccess }) => {
     { component_name: '', amount: '', tax_percentage: 0 }
   ]);
 
-  const computedTotalAmount = components.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  const computedTotalAmount = components.reduce((sum, item) => {
+    const base = Number(item.amount) || 0;
+    const taxPercent = Number(item.tax_percentage) || 0;
+    const grossAmount = taxPercent > 0 ? base + (base * (taxPercent / 100)) : base;
+    return sum + grossAmount;
+  }, 0);
 
   const formatDisplayDate = (dateString) => {
     if (!dateString) return '';
@@ -96,7 +109,6 @@ const FeeStructureManager = ({ getAxiosConfig, onGenerationSuccess }) => {
     }
   };
 
-  // Inline Generation Logic for Target Batches
   const handleInlineGenerate = async (struct) => {
     const targetStructureId = struct.fee_structure_id;
     const targetBatchId = struct.batch_id;
@@ -139,6 +151,19 @@ const FeeStructureManager = ({ getAxiosConfig, onGenerationSuccess }) => {
       setAcademicYears([]);
     }
   }, [form.branch_id]);
+
+  // Reset batch filter if branch filter changes and the batch doesn't belong to it
+  useEffect(() => {
+    if (filterBranchId && filterBatchId) {
+      const batchExistsInBranch = batches.some(
+        b => String(b.batch_id || b.id) === String(filterBatchId) && String(b.branch_id || b.id) === String(filterBranchId)
+      );
+      if (!batchExistsInBranch) {
+        setFilterBatchId('');
+      }
+    }
+    setCurrentPage(1);
+  }, [filterBranchId, batches, filterBatchId]);
 
   const handleComponentChange = (index, field, value) => {
     const updated = [...components];
@@ -185,9 +210,9 @@ const FeeStructureManager = ({ getAxiosConfig, onGenerationSuccess }) => {
       ...form,
       total_amount: computedTotalAmount,
       components: cleanedComponents.map(c => ({
-        ...c,
+        component_name: c.component_name,
         amount: Number(c.amount),
-        tax_percentage: Number(c.tax_percentage) || 0
+        tax_percentage: Number(c.tax_percentage) > 0 ? Number(c.tax_percentage) : 0
       }))
     };
 
@@ -270,6 +295,23 @@ const FeeStructureManager = ({ getAxiosConfig, onGenerationSuccess }) => {
     setCurrentStructureId(null);
     setShowForm(false);
   };
+
+  const filteredFeeStructures = feeStructures.filter((struct) => {
+    const associatedBatch = batches.find(
+      (b) => String(b.batch_id || b.id) === String(struct.batch_id)
+    );
+    const structBranchId = struct.branch_id || associatedBatch?.branch_id;
+
+    const matchBranch = filterBranchId ? String(structBranchId) === String(filterBranchId) : true;
+    const matchBatch = filterBatchId ? String(struct.batch_id) === String(filterBatchId) : true;
+
+    return matchBranch && matchBatch;
+  });
+
+  // pagination logic
+  const totalPages = Math.ceil(filteredFeeStructures.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedFeeStructures = filteredFeeStructures.slice(startIndex, startIndex + itemsPerPage);
 
   return (
     <div className='space-y-8 animate-fade-in relative'>
@@ -504,125 +546,210 @@ const FeeStructureManager = ({ getAxiosConfig, onGenerationSuccess }) => {
         </form>
       )}
 
-      {/*Existing fee structures display */}
-      <div className='bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm'>
-        <div className='p-4 border-b border-slate-100 bg-slate-50/50'>
-          <h3 className='text-sm font-bold text-slate-700'>Currently Configured Fee Matrices</h3>
+      {/* Existing fee structures display */}
+      <div className='bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm space-y-4'>
+        <div className='p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4'>
+          <div>
+            <h3 className='text-sm font-bold text-slate-700'>Currently Configured Fee Matrices</h3>
+          </div>
+          {/* Filter controls */}
+          <div className='flex flex-wrap items-center gap-3 bg-white p-2 border border-slate-200 rounded-xl shadow-sm'>
+            <div className='flex items-center gap-1.5 text-xs font-bold text-slate-400 px-1 uppercase tracking-wider'>
+              <Filter size={13} />
+              <span>Filters</span>
+            </div>
+            <div className='h-4 w-px bg-slate-200 hidden sm:block' />
+
+            <select
+              value={filterBranchId}
+              onChange={(e) => setFilterBranchId(e.target.value)}
+              className='text-xs font-semibold border border-slate-200 rounded-lg p-1.5 focus:outline-none bg-slate-50 text-slate-600 cursor-pointer hover:bg-slate-100 transition-colors'
+            >
+              <option value="">All Branches</option>
+              {branches.map((br) => (
+                <option key={br.branch_id || br.id} value={br.branch_id || br.id}>{br.branch_name}</option>
+              ))}
+            </select>
+
+            <select
+              value={filterBatchId}
+              onChange={(e) => setFilterBatchId(e.target.value)}
+              className='text-xs font-semibold border border-slate-200 rounded-lg p-1.5 focus:outline-none bg-slate-50 text-slate-600 cursor-pointer hover:bg-slate-100 transition-colors'
+            >
+              <option value="">All Batches</option>
+              {batches
+                .filter((b) => !filterBranchId || String(b.branch_id || b.id) === String(filterBranchId))
+                .map((b) => (
+                  <option key={b.batch_id || b.id} value={b.batch_id || b.id}>
+                    {b.class_name} - {b.section_name} ({b.medium_name} - {b.board_name})
+                  </option>
+                ))
+              }
+            </select>
+          </div>
         </div>
+
         {loadingStructures ? (
           <div className='flex flex-col items-center justify-center p-12 text-slate-400 gap-2'>
             <Loader2 size={24} className='animate-spin text-blue-500' />
             <span className='text-xs font-semibold'>Reading financial data tables...</span>
           </div>
-        ) : feeStructures.length === 0 ? (
+        ) : filteredFeeStructures.length === 0 ? (
           <div className='p-12 text-center text-sm font-medium text-slate-400'>
-            No fee structures deployed on current operational boundaries.
+            No fee structures deployed matching the current matrix context filters.
           </div>
         ) : (
-          <div className='overflow-x-auto'>
-            <table className='w-full text-left text-sm border-collapse'>
-              <thead>
-                <tr className='bg-slate-50 text-slate-400 font-bold text-xs uppercase border-b border-slate-100'>
-                  <th className='p-2'>Id</th>
-                  <th className='p-4'>Branch</th>
-                  <th className='p-4'>Batch</th>
-                  <th className='p-4'>Academic year</th>
-                  <th className='p-4'>Total Amount</th>
-                  <th className='p-4'>Payment Interval</th>
-                  <th className='p-4'>Due Date</th>
-                  <th className='p-4'>Status</th>
-                  <th className='p-4 text-right'>Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
-                {feeStructures.map((struct) => (
-                  <tr key={struct.fee_structure_id} className="hover:bg-slate-50/70 transition-colors">
-                    <td className='p-2 text-blue-800 font-semibold'>{struct.fee_structure_id}</td>
-                    <td className="p-4 text-slate-600 font-semibold">
-                      <div>{struct.branch_name}</div>
-                      <div className="text-[11px] text-slate-400 font-normal mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5 items-center">
-                        <span>Created by: <strong className="text-slate-500 font-medium">{struct.creator_name || 'System'}</strong></span>
-                        {struct.updated_by && struct.updater_name && (
-                          <>
-                            <span className="text-slate-300">•</span>
-                            <span>Updated by: <strong className="text-slate-500 font-medium">{struct.updater_name}</strong></span>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-4 font-bold text-slate-800">{struct.batch_name}</td>
-                    <td className="p-4 text-slate-500">{struct.batch_year || `Year ID: ${struct.academic_year_id}`}</td>
-                    <td className="p-4 text-blue-600 font-bold">₹{struct.total_amount}</td>
-                    <td className="p-4">
-                      <span className="bg-slate-100 px-2.5 py-1 rounded-lg text-xs font-bold text-slate-600 capitalize">
-                        {struct.payment_type} {String(struct.payment_type).toLowerCase() === 'installment' ? `(${struct.no_of_installments})` : ''}
-                      </span>
-                    </td>
-                    <td className="p-4 text-slate-500 font-mono text-xs">{formatDisplayDate(struct.due_date)}</td>
-                    <td className="p-4">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${struct.status === 'Active' ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-slate-100 text-slate-500'}`}>
-                        {struct.status}
-                      </span>
-                    </td>
-                    <td className="p-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleInlineGenerate(struct)}
-                          disabled={isGenerating[struct.fee_structure_id] || struct.status !== 'Active'}
-                          title="Generate ledgers for this entire batch"
-                          className={`flex items-center gap-1 text-[11px] font-bold px-2 py-1.5 rounded-lg border transition-all ${struct.status !== 'Active'
-                            ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'
-                            : 'bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border-emerald-200 shadow-sm'
-                            }`}
-                        >
-                          {isGenerating[struct.fee_structure_id] ? (
-                            <Loader2 size={12} className="animate-spin" />
-                          ) : (
-                            <Sparkles size={11} />
-                          )}
-                          {isGenerating[struct.fee_structure_id] ? 'Generating...' : 'Generate fee installments'}
-                        </button>
-
-                        <div className="w-px h-4 bg-slate-200 mx-0.5" />
-
-                        <button onClick={() => handleEditClick(struct)} className="p-1.5 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-lg transition-all">
-                          <Edit2 size={14} />
-                        </button>
-                        <button onClick={() => handleDeleteTrigger(struct)} className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-lg transition-all">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
+          <>
+            <div className='overflow-x-auto'>
+              <table className='w-full text-left text-sm border-collapse'>
+                <thead>
+                  <tr className='bg-slate-50 text-slate-400 font-bold text-xs uppercase border-b border-slate-100'>
+                    <th className='p-2'>Id</th>
+                    <th className='p-4'>Branch</th>
+                    <th className='p-4'>Batch</th>
+                    <th className='p-4'>Academic year</th>
+                    <th className='p-4'>Total Amount</th>
+                    <th className='p-4'>Payment Interval</th>
+                    <th className='p-4'>Due Date</th>
+                    <th className='p-4'>Status</th>
+                    <th className='p-4 text-right'>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+                  {paginatedFeeStructures.map((struct) => (
+                    <tr key={struct.fee_structure_id} className="hover:bg-slate-50/70 transition-colors">
+                      <td className='p-2 text-blue-800 font-semibold'>{struct.fee_structure_id}</td>
+                      <td className="p-4 text-slate-600 font-semibold">
+                        <div>{struct.branch_name}</div>
+                        <div className="text-[11px] text-slate-400 font-normal mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5 items-center">
+                          <span>Created by: <strong className="text-slate-500 font-medium">{struct.creator_name || 'System'}</strong></span>
+                          {struct.updated_by && struct.updater_name && (
+                            <>
+                              <span className="text-slate-300">•</span>
+                              <span>Updated by: <strong className="text-slate-500 font-medium">{struct.updater_name}</strong></span>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-4 font-bold text-slate-800">{struct.batch_name}</td>
+                      <td className="p-4 text-slate-500">{struct.batch_year || `Year ID: ${struct.academic_year_id}`}</td>
+                      <td className="p-4 text-blue-600 font-bold">₹{struct.total_amount}</td>
+                      <td className="p-4">
+                        <span className="bg-slate-100 px-2.5 py-1 rounded-lg text-xs font-bold text-slate-600 capitalize">
+                          {struct.payment_type} {String(struct.payment_type).toLowerCase() === 'installment' ? `(${struct.no_of_installments})` : ''}
+                        </span>
+                      </td>
+                      <td className="p-4 text-slate-500 font-mono text-xs">{formatDisplayDate(struct.due_date)}</td>
+                      <td className="p-4">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${struct.status === 'Active' ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-slate-100 text-slate-500'}`}>
+                          {struct.status}
+                        </span>
+                      </td>
+                      <td className="p-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleInlineGenerate(struct)}
+                            disabled={isGenerating[struct.fee_structure_id] || struct.status !== 'Active'}
+                            title="Generate ledgers for this entire batch"
+                            className={`flex items-center gap-1 text-[11px] font-bold px-2 py-1.5 rounded-lg border transition-all ${struct.status !== 'Active'
+                              ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'
+                              : 'bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border-emerald-200 shadow-sm'
+                              }`}
+                          >
+                            {isGenerating[struct.fee_structure_id] ? (
+                              <Loader2 size={12} className="animate-spin" />
+                            ) : (
+                              <Sparkles size={11} />
+                            )}
+                            {isGenerating[struct.fee_structure_id] ? 'Generating...' : 'Generate fee installments'}
+                          </button>
+
+                          <div className="w-px h-4 bg-slate-200 mx-0.5" />
+
+                          <button onClick={() => handleEditClick(struct)} className="p-1.5 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-lg transition-all">
+                            <Edit2 size={14} />
+                          </button>
+                          <button onClick={() => handleDeleteTrigger(struct)} className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-lg transition-all">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {totalPages > 1 && (
+              <div className='px-4 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between'>
+                <div className='text-xs font-semibold text-slate-500'>
+                  Showing <span className='text-slate-700'>{startIndex + 1}</span> to{' '}
+                  <span className='text-slate-700'>
+                    {Math.min(startIndex + itemsPerPage, filteredFeeStructures.length)}
+                  </span>{' '}
+                  of <span className='text-slate-700'>{filteredFeeStructures.length}</span> architectures
+                </div>
+                <div className='flex items-center gap-1'>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className='p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
+                  >
+                    <ChevronLeft size={15} />
+                  </button>
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                    <button
+                      key={pageNum}
+                      type="button"
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentPage === pageNum
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                        }`}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
+
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className='p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
+                  >
+                    <ChevronRight size={15} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white w-full max-w-md rounded-2xl border border-slate-200 p-6 shadow-xl animate-scale-up space-y-5">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-red-50 text-red-500 rounded-xl border border-red-100 shrink-0">
-                <AlertTriangle size={22} className="animate-pulse" />
+        <div className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in'>
+          <div className='bg-white w-full max-w-md rounded-2xl border border-slate-200 p-6 shadow-xl animate-scale-up space-y-5'>
+            <div className='flex items-start gap-4'>
+              <div className='p-3 bg-red-50 text-red-500 rounded-xl border border-red-100 shrink-0'>
+                <AlertTriangle size={22} className='animate-pulse' />
               </div>
-              <div className="space-y-1">
-                <h4 className="text-base font-bold text-slate-800">Wipe out this structure setup?</h4>
-                <p className="text-sm text-slate-500 font-medium leading-relaxed">
+              <div className='space-y-1'>
+                <h4 className='text-base font-bold text-slate-800'>Wipe out this structure setup?</h4>
+                <p className='text-sm text-slate-500 font-medium leading-relaxed'>
                   You are about to discard the configuration for <strong className="text-slate-700">{structureToDelete?.batch_name}</strong>. Existing fee structure mappings might drop tracking precision.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+            <div className='flex items-center justify-end gap-2 pt-2 border-t border-slate-100'>
               <button
                 type="button"
                 disabled={isDeleting}
                 onClick={() => { setShowDeleteModal(false); setStructureToDelete(null); }}
-                className="px-4 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors disabled:opacity-50"
+                className='px-4 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors disabled:opacity-50'
               >
                 Cancel, Keep Matrix
               </button>
@@ -630,11 +757,11 @@ const FeeStructureManager = ({ getAxiosConfig, onGenerationSuccess }) => {
                 type="button"
                 disabled={isDeleting}
                 onClick={executeDelete}
-                className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-sm transition-colors disabled:opacity-50 min-w-25 justify-center"
+                className='flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-sm transition-colors disabled:opacity-50 min-w-25 justify-center'
               >
                 {isDeleting ? (
                   <>
-                    <Loader2 size={12} className="animate-spin" />
+                    <Loader2 size={12} className='animate-spin' />
                     Dropping...
                   </>
                 ) : (

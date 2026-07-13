@@ -112,7 +112,18 @@ const FeeOperationModel = {
             ]
         );
         return rows[0];
-    }
+    },
+
+    deleteInstallments: async (feeStructureId, schoolId) => {
+        await db.query(
+            'CALL sp_DeleteFeeInstallments(?, ?, @success, @message)',
+            [feeStructureId, schoolId]
+        );
+
+        const [outRows] = await db.query('SELECT @success AS status, @message AS message');
+
+        return outRows[0];
+    },
 };
 
 module.exports = FeeOperationModel;

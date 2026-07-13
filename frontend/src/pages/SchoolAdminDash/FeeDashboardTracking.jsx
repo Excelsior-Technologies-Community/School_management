@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { backendUrl } from '../../App';
 import { toast } from 'react-toastify';
 import { useEffect } from 'react';
-import { AlertCircle, CheckCircle2, FileText, Filter, HelpCircle, Percent, Search, Banknote, ArrowRight, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, FileText, Filter, HelpCircle, Percent, Search, Banknote, ArrowRight, X, Trash2 } from 'lucide-react';
 
 const FeeDashboardTracking = ({ getAxiosConfig }) => {
 
@@ -12,10 +12,12 @@ const FeeDashboardTracking = ({ getAxiosConfig }) => {
     const [batches, setBatches] = useState([]);
     const [loading, setLoading] = useState(false);
 
+    const [processingDelete, setProcessingDelete] = useState(false);
+
     const [selectedBatch, setSelectedBatch] = useState('');
     const [selectedStatus, setSelectedStatus] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
-    const [limit] = useState(20);
+    const [limit] = useState(30);
     const [offset, setOffset] = useState(0);
 
     const [activeModal, setActiveModal] = useState(null);
@@ -77,6 +79,37 @@ const FeeDashboardTracking = ({ getAxiosConfig }) => {
     useEffect(() => {
         fetchDashboardData();
     }, [selectedBatch, selectedStructure, selectedStatus, searchQuery, offset]);
+
+    const handleClearInstallments = async () => {
+        if (!selectedStructure) {
+            toast.warning('Please select a specific Fee Structure first to clear installments.');
+            return;
+        }
+
+        const confirmDelete = window.confirm(
+            `Are you sure you want to completely clear all generated student installments for this fee structure ID: ${selectedStructure}?`
+        );
+
+        if (!confirmDelete) return;
+
+        setProcessingDelete(true);
+        try {
+            const res = await axios.delete(`${backendUrl}/api/fees/clear-installments`, {
+                ...getAxiosConfig(),
+                data: { fee_structure_id: parseInt(selectedStructure) }
+            });
+
+            if (res.data.success) {
+                toast.success(res.data.message || 'Installment entries purged cleanly.');
+                setOffset(0);
+                fetchDashboardData();
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to clear structure installments.');
+        } finally {
+            setProcessingDelete(false);
+        }
+    }
 
     const handleProcessPayment = async (e) => {
         e.preventDefault();
@@ -191,20 +224,36 @@ const FeeDashboardTracking = ({ getAxiosConfig }) => {
                     </select>
                 </div>
 
-                <div className='flex items-center gap-2'>
-                    <Filter className='text-slate-400 shrink-0' size={16} />
-                    <select
-                        value={selectedStructure}
-                        onChange={(e) => { setSelectedStructure(e.target.value); setOffset(0); }}
-                        className='w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20'
+                <div className='flex items-center gap-1.5'>
+                    <div className='flex items-center gap-2 flex-1'>
+                        <Filter className='text-slate-400 shrink-0' size={16} />
+                        <select
+                            value={selectedStructure}
+                            onChange={(e) => { setSelectedStructure(e.target.value); setOffset(0); }}
+                            className='w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20'
+                        >
+                            <option value="">All Fee Structures</option>
+                            {feeStructures.map(fs => (
+                                <option key={fs.fee_structure_id} value={fs.fee_structure_id}>
+                                    Fee Structure: {fs.fee_structure_id}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={handleClearInstallments}
+                        disabled={!selectedStructure || processingDelete}
+                        className={`p-2 rounded-lg border text-sm transition-all shrink-0 shadow-sm flex items-center justify-center
+                            ${selectedStructure
+                                ? 'bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-600 hover:text-white cursor-pointer'
+                                : 'bg-slate-50 border-slate-200 text-slate-300 cursor-not-allowed'
+                            }`}
+                        title={selectedStructure ? "Clear Installments for Selected Structure" : "Select a structure to clear entries"}
                     >
-                        <option value="">All Fee Structures</option>
-                        {feeStructures.map(fs => (
-                            <option key={fs.fee_structure_id} value={fs.fee_structure_id}>
-                                Fee Structure: {fs.fee_structure_id}
-                            </option>
-                        ))}
-                    </select>
+                        <Trash2 size={16} className={processingDelete ? 'animate-spin' : ''} />
+                    </button>
                 </div>
 
                 <div className='flex items-center gap-2'>
@@ -248,11 +297,16 @@ const FeeDashboardTracking = ({ getAxiosConfig }) => {
                             <tbody className='divide-y divide-slate-200 text-slate-700'>
                                 {dataList.map((row) => (
                                     <tr key={row.installment_id} className="hover:bg-slate-50/80 transition-colors">
+                                        {/* Student Info */}
                                         <td className="p-4">
                                             <div className="font-bold text-slate-900">{row.student_full_name}</div>
                                             <div className="text-[11px] font-mono text-slate-400 mt-0.5">ID: {row.student_id}</div>
                                         </td>
+
+                                        {/* Batch */}
                                         <td className="p-4 text-xs font-medium text-slate-600">{row.batch_name}</td>
+
+                                        {/* Installment Meta */}
                                         <td className="p-4 text-xs">
                                             <div className="font-semibold text-slate-800">#Installment {row.installment_number}</div>
                                             {row.component_names ? (
@@ -269,9 +323,10 @@ const FeeDashboardTracking = ({ getAxiosConfig }) => {
                                             ) : (
                                                 <div className="text-[10px] text-slate-400 italic mt-0.5">No components listed</div>
                                             )}
-
-                                            <div className="text-slate-400 mt-1 font-medium">Due: {new Date(row.due_date).toLocaleDateString()}</div>
+                                            <div className="text-slate-400 mt-1 font-medium">Due: {new Date(row.due_date).toLocaleDateString('en-GB')}</div>
                                         </td>
+
+                                        {/* Owed / Paid Balance Analytics */}
                                         <td className="p-4 text-right text-xs">
                                             <div className="font-semibold text-slate-900">₹{parseFloat(row.net_amount_owed).toFixed(2)}</div>
 
@@ -281,12 +336,34 @@ const FeeDashboardTracking = ({ getAxiosConfig }) => {
                                                 </div>
                                             )}
 
-                                            <div className="text-emerald-600 font-medium mt-0.5">Paid: ₹{parseFloat(row.total_amount_paid).toFixed(2)}</div>
+                                            <div className="text-emerald-600 font-semibold mt-0.5">Paid: ₹{parseFloat(row.total_amount_paid).toFixed(2)}</div>
+
+                                            {/* Payment Mode & Collector Badges */}
+                                            {(row.payment_mode || (row.installment_status === 'Paid' && row.recorded_by && row.recorded_by !== '-')) && (
+                                                <div className="flex items-center justify-end gap-1 mt-1.5">
+                                                    {row.payment_mode && (
+                                                        <span className="inline-block px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider bg-slate-100 text-slate-600 rounded border border-slate-200 font-mono">
+                                                            {row.payment_mode}
+                                                        </span>
+                                                    )}
+                                                    {row.installment_status === 'Paid' && row.recorded_by && row.recorded_by !== '-' && (
+                                                        <span
+                                                            className="inline-block px-1.5 py-0.5 text-[9px] font-medium bg-blue-50 text-blue-600 rounded border border-blue-100 max-w-27.5 truncate"
+                                                            title={`Recorded by: ${row.recorded_by}`}
+                                                        >
+                                                            Recorded By: {row.recorded_by}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
                                         </td>
-                                        <td className="p-4 text-right text-xs font-bold text-slate-900">
+
+                                        <td className="p-4 text-right text-xs font-bold text-slate-900 tabular-nums">
                                             ₹{parseFloat(row.outstanding_balance).toFixed(2)}
                                         </td>
-                                        <td className="p-4 text-center">{getStatusBadge(row.installment_status)}</td>
+
+                                        <td className="p-4 text-center whitespace-nowrap">{getStatusBadge(row.installment_status)}</td>
+
                                         <td className="p-4">
                                             <div className="flex items-center justify-center gap-1.5">
                                                 {parseFloat(row.outstanding_balance) > 0 && (
@@ -301,7 +378,7 @@ const FeeDashboardTracking = ({ getAxiosConfig }) => {
                                                         <button
                                                             onClick={() => { setSelectedRow(row); setActiveModal('discount'); }}
                                                             className="p-1.5 rounded-lg bg-purple-50 border border-purple-200 text-purple-600 hover:bg-purple-600 hover:text-white transition-all shadow-sm"
-                                                            title="Apply Waiver/Discount"
+                                                            title="Apply Discount"
                                                         >
                                                             <Percent size={14} />
                                                         </button>
@@ -313,7 +390,7 @@ const FeeDashboardTracking = ({ getAxiosConfig }) => {
                                                         target="_blank"
                                                         rel="noreferrer"
                                                         className="p-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-800 hover:text-white transition-all shadow-sm"
-                                                        title="View Voucher Receipt"
+                                                        title="View Receipt"
                                                     >
                                                         <FileText size={14} />
                                                     </a>

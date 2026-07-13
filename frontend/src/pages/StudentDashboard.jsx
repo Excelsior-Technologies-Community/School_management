@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react'
 import { backendUrl } from '../App';
 import { toast } from 'react-toastify';
 import axios from 'axios';
-import { BookOpen, LogOut, User, Menu, X, FileText, CalendarDays } from 'lucide-react';
+import { BookOpen, LogOut, User, Menu, X, FileText, CalendarDays, CreditCard } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 import Assignments from './StudentDash/Assignments';
 import Timetable from './StudentDash/Timetable';
+import FeeStatement from './StudentDash/FeeStatement';
 
 const StudentDashboard = () => {
 
@@ -122,6 +123,22 @@ const StudentDashboard = () => {
               <span >My Timetable</span >
             </div >
           </button >
+
+          <button
+            onClick={() => {
+              setActiveTab('fees');
+              setIsSidebarOpen(false);
+            }}
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200 group ${activeTab === 'fees'
+              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
+              : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+              }`}
+          >
+            <div className="flex items-center gap-3">
+              <CreditCard size={18} />
+              <span >My Fee Payments</span >
+            </div >
+          </button >
         </nav >
 
         <div className="p-3 border-t border-slate-800 bg-slate-950/30">
@@ -148,6 +165,13 @@ const StudentDashboard = () => {
 
           {activeTab === 'timetable' && (
             <Timetable
+              user={user}
+              getAxiosConfig={getAxiosConfig}
+            />
+          )}
+
+          {activeTab === 'fees' && (
+            <FeeStatement
               user={user}
               getAxiosConfig={getAxiosConfig}
             />

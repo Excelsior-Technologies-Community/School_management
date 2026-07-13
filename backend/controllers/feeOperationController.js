@@ -156,7 +156,7 @@ const getStudentFeeDetails = async (req, res) => {
 
 const getAdminFeeDashboard = async (req, res) => {
     try {
-        const { fee_structure_id,batch_id, installment_status, search_query, limit, offset } = req.query;
+        const { fee_structure_id, batch_id, installment_status, search_query, limit, offset } = req.query;
 
         const data = await FeeOperationModel.getFeeTrackingDashboard({
             fee_structure_id,
@@ -173,5 +173,39 @@ const getAdminFeeDashboard = async (req, res) => {
     }
 };
 
+const clearFeeInstallments = async (req, res) => {
+    try {
+        const { fee_structure_id } = req.body;
+        const school_id = req.user.school_id; 
 
-module.exports = { generateStudentInstallments, applyFeeDiscount, processFeePayment, generateBatchInstallments, updateFeeDiscount, updateFeePayment, getStudentFeeDetails, getAdminFeeDashboard }
+        if (!fee_structure_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing target fee_structure_id required to flush ledgers.'
+            });
+        }
+
+        const result = await FeeOperationModel.deleteInstallments(fee_structure_id, school_id);
+
+        if (result.status === 0) {
+            return res.status(400).json({
+                success: false,
+                message: result.message
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: result.message
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error while executing installment table adjustments.'
+        });
+    }
+};
+
+
+module.exports = { clearFeeInstallments, generateStudentInstallments, applyFeeDiscount, processFeePayment, generateBatchInstallments, updateFeeDiscount, updateFeePayment, getStudentFeeDetails, getAdminFeeDashboard }
