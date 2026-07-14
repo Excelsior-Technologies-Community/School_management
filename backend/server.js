@@ -22,6 +22,7 @@ const examRoutes = require('./routes/examRoutes')
 const academicYearRoutes = require('./routes/academicYearRoutes')
 const feeStructureRoutes = require('./routes/feeStructureRoutes')
 const feeOperationRoutes = require('./routes/feeOperationRoutes')
+const achievementRoutes = require('./routes/achievementRoutes')
 
 const app = express();
 
@@ -45,6 +46,7 @@ app.use('/api/exam', examRoutes)
 app.use('/api/academicyear', academicYearRoutes)
 app.use('/api/fee', feeStructureRoutes)
 app.use('/api/fees', feeOperationRoutes)
+app.use('/api/achievements', achievementRoutes)
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

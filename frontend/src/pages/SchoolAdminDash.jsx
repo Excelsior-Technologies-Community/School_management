@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Building2, LogOut, Users2, UserPlus, Network, Banknote, Layers, Boxes, GitBranch, Clock, GraduationCap, BookOpen, User, Menu, X, School, Calendar, Calendars, BanknoteArrowDown, BanknoteArrowUp } from 'lucide-react';
+import { Building2, LogOut, Users2, UserPlus, Network, Banknote, Layers, Boxes, GitBranch, Clock, GraduationCap, BookOpen, User, Menu, X, School, Calendar, Calendars, BanknoteArrowDown, BanknoteArrowUp, Award } from 'lucide-react';
 import axios from 'axios';
 import { backendUrl } from '../App';
 import { toast } from 'react-toastify';
@@ -18,6 +18,7 @@ import ExamManagement from './SchoolAdminDash/ExamManagement';
 import AcademicYearManager from './SchoolAdminDash/AcademicYearManager';
 import FeeStructureManager from './SchoolAdminDash/FeeStructureManager';
 import FeeDashboardTracking from './SchoolAdminDash/FeeDashboardTracking';
+import AchievementManager from './SchoolAdminDash/AchievementManager';
 
 const SchoolAdminDash = () => {
   const { user, logoutState } = useAuth();
@@ -373,6 +374,7 @@ const SchoolAdminDash = () => {
           {renderSidebarButton('years', 'Academic Years', Calendars)}
           {renderSidebarButton('fees', 'Fee Structure', BanknoteArrowUp)}
           {renderSidebarButton('fee-tracking', 'Fee Payments', Banknote)}
+          {renderSidebarButton('achievements', 'Student achievements', Award)}
 
           {!isStaff && (
             <>
@@ -427,6 +429,10 @@ const SchoolAdminDash = () => {
 
           {activeTab === 'fee-tracking' && (
             <FeeDashboardTracking getAxiosConfig={getAxiosConfig} />
+          )}
+
+          {activeTab === 'achievements' && (
+            <AchievementManager getAxiosConfig={getAxiosConfig} />
           )}
 
           {activeTab === 'directory' && !isStaff && (

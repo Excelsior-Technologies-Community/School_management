@@ -2,12 +2,13 @@ import React, { useEffect, useState } from 'react'
 import { backendUrl } from '../App';
 import { toast } from 'react-toastify';
 import axios from 'axios';
-import { BookOpen, LogOut, User, Menu, X, FileText, CalendarDays, CreditCard } from 'lucide-react';
+import { BookOpen, LogOut, User, Menu, X, FileText, CalendarDays, CreditCard, Trophy } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 import Assignments from './StudentDash/Assignments';
 import Timetable from './StudentDash/Timetable';
 import FeeStatement from './StudentDash/FeeStatement';
+import StudentAchievements from './StudentDash/StudentAchievements';
 
 const StudentDashboard = () => {
 
@@ -16,6 +17,7 @@ const StudentDashboard = () => {
   const [activeTab, setActiveTab] = useState('assignments');
   const [homeworkList, setHomeworkList] = useState([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [achievementCount, setAchievementCount] = useState(0);
 
   const getAxiosConfig = () => ({
     headers: {
@@ -100,7 +102,7 @@ const StudentDashboard = () => {
           >
             <div className="flex items-center gap-3">
               <FileText size={18} />
-              <span >My Assignments</span >
+              <span >Assignments</span >
             </div >
             <span className={`text-[11px] px-2 py-0.5 rounded-md font-mono ${activeTab === 'assignments' ? 'bg-blue-700 text-blue-100' : 'bg-slate-800 text-slate-400'
               }`}>
@@ -120,7 +122,7 @@ const StudentDashboard = () => {
           >
             <div className="flex items-center gap-3">
               <CalendarDays size={18} />
-              <span >My Timetable</span >
+              <span >Timetable</span >
             </div >
           </button >
 
@@ -136,9 +138,29 @@ const StudentDashboard = () => {
           >
             <div className="flex items-center gap-3">
               <CreditCard size={18} />
-              <span >My Fee Payments</span >
+              <span >Fee Payments</span >
             </div >
           </button >
+
+          <button
+            onClick={() => {
+              setActiveTab('achievements');
+              setIsSidebarOpen(false);
+            }}
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200 group ${activeTab === 'achievements'
+              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
+              : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+              }`}
+          >
+            <div className="flex items-center gap-3">
+              <Trophy size={18} />
+              <span>Achievements</span>
+            </div>
+            <span className={`text-[11px] px-2 py-0.5 rounded-md font-mono ${activeTab === 'achievements' ? 'bg-blue-700 text-blue-100' : 'bg-slate-800 text-slate-400'
+              }`}>
+              {achievementCount}
+            </span>
+          </button>
         </nav >
 
         <div className="p-3 border-t border-slate-800 bg-slate-950/30">
@@ -174,6 +196,14 @@ const StudentDashboard = () => {
             <FeeStatement
               user={user}
               getAxiosConfig={getAxiosConfig}
+            />
+          )}
+
+          {activeTab === 'achievements' && (
+            <StudentAchievements
+              backendUrl={backendUrl}
+              getAxiosConfig={getAxiosConfig}
+              setSidebarAchievementCount={setAchievementCount}
             />
           )}
         </div >
