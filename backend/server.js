@@ -23,6 +23,7 @@ const academicYearRoutes = require('./routes/academicYearRoutes')
 const feeStructureRoutes = require('./routes/feeStructureRoutes')
 const feeOperationRoutes = require('./routes/feeOperationRoutes')
 const achievementRoutes = require('./routes/achievementRoutes')
+const batchNoteRoutes = require('./routes/batchNotesRoutes.js')
 
 const app = express();
 
@@ -47,6 +48,7 @@ app.use('/api/academicyear', academicYearRoutes)
 app.use('/api/fee', feeStructureRoutes)
 app.use('/api/fees', feeOperationRoutes)
 app.use('/api/achievements', achievementRoutes)
+app.use('/api/batchnote',batchNoteRoutes)
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

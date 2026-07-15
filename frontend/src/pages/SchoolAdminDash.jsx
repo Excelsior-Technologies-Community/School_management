@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Building2, LogOut, Users2, UserPlus, Network, Banknote, Layers, Boxes, GitBranch, Clock, GraduationCap, BookOpen, User, Menu, X, School, Calendar, Calendars, BanknoteArrowDown, BanknoteArrowUp, Award } from 'lucide-react';
+import { Building2, LogOut, Users2, UserPlus, Network, Banknote, Layers, Boxes, GitBranch, Clock, GraduationCap, BookOpen, User, Menu, X, School, Calendar, Calendars, BanknoteArrowDown, BanknoteArrowUp, Award, StickyNote } from 'lucide-react';
 import axios from 'axios';
 import { backendUrl } from '../App';
 import { toast } from 'react-toastify';
@@ -19,6 +19,7 @@ import AcademicYearManager from './SchoolAdminDash/AcademicYearManager';
 import FeeStructureManager from './SchoolAdminDash/FeeStructureManager';
 import FeeDashboardTracking from './SchoolAdminDash/FeeDashboardTracking';
 import AchievementManager from './SchoolAdminDash/AchievementManager';
+import BatchNotesManager from './SchoolAdminDash/BatchNotesManager';
 
 const SchoolAdminDash = () => {
   const { user, logoutState } = useAuth();
@@ -374,7 +375,8 @@ const SchoolAdminDash = () => {
           {renderSidebarButton('years', 'Academic Years', Calendars)}
           {renderSidebarButton('fees', 'Fee Structure', BanknoteArrowUp)}
           {renderSidebarButton('fee-tracking', 'Fee Payments', Banknote)}
-          {renderSidebarButton('achievements', 'Student achievements', Award)}
+          {renderSidebarButton('achievements', 'Student Achievements', Award)}
+          {renderSidebarButton('batchnotes', 'Batch Notes', StickyNote)}
 
           {!isStaff && (
             <>
@@ -433,6 +435,10 @@ const SchoolAdminDash = () => {
 
           {activeTab === 'achievements' && (
             <AchievementManager getAxiosConfig={getAxiosConfig} />
+          )}
+
+          {activeTab === 'batchnotes' && (
+            <BatchNotesManager getAxiosConfig={getAxiosConfig} />
           )}
 
           {activeTab === 'directory' && !isStaff && (
